@@ -9,83 +9,113 @@ const SCOPES = [
 
 const CREDENTIALS_FILE = path.join(process.cwd(), 'google_credentials.json');
 
-/**
- * Cleans up a JSON string that may have been mangled by hosting panel env var editors.
- * Hostinger (and similar panels) often:
- *  - Wrap the entire value in extra quotes
- *  - Double-escape backslashes (\\\\n → \\n)
- *  - Escape inner double quotes (\\" → ")
- *  - Add leading/trailing backslashes
- */
-function cleanEnvJson(raw: string): string {
-  let s = raw.trim();
+function getAuthClient() {
+  // ═══════════════════════════════════════════════════════════
+  //  METHOD 1: Individual env vars (BEST for Hostinger)
+  //  No JSON parsing needed — completely avoids escaping issues
+  // ═══════════════════════════════════════════════════════════
+  const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
+  const privateKeyRaw = process.env.GOOGLE_PRIVATE_KEY;
+  const projectId = process.env.GOOGLE_PROJECT_ID;
 
-  // Strip surrounding single or double quotes added by the panel
-  if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
-    s = s.substring(1, s.length - 1);
+  if (clientEmail && privateKeyRaw) {
+    try {
+      // The private key PEM uses real newlines, but env vars store them as literal \n
+      const privateKey = privateKeyRaw.replace(/\\n/g, '\n');
+      const auth = new google.auth.GoogleAuth({
+        credentials: {
+          type: 'service_account',
+          project_id: projectId || '',
+          client_email: clientEmail,
+          private_key: privateKey,
+        },
+        scopes: SCOPES,
+      });
+      console.log(`[OK] Google Sheets auth via individual env vars (email: ${clientEmail})`);
+      return auth;
+    } catch (error) {
+      console.error(`[ERR] Failed to auth with individual env vars:`, error);
+    }
   }
 
-  // Strip leading/trailing backslashes
-  while (s.startsWith('\\')) s = s.substring(1);
-  while (s.endsWith('\\')) s = s.substring(0, s.length - 1);
-  s = s.trim();
-
-  // Replace escaped double quotes \" → "
-  s = s.replace(/\\"/g, '"');
-
-  // Fix double-escaped newlines: \\\\n → \\n (literal four-char sequence to two-char)
-  // This handles cases where the panel stored \\n as \\\\n
-  s = s.replace(/\\\\n/g, '\\n');
-
-  // Fix triple/quad-escaped newlines just in case
-  s = s.replace(/\\\\\\\\n/g, '\\n');
-
-  return s;
-}
-
-function getAuthClient() {
-  // Try loading from Environment Variable first (best for cloud hosts)
-  const envCreds = process.env.GOOGLE_CREDS_JSON;
-  if (envCreds) {
+  // ═══════════════════════════════════════════════════════════
+  //  METHOD 2: Base64-encoded JSON (GOOGLE_CREDS_BASE64)
+  //  Set it once with: base64 google_credentials.json
+  // ═══════════════════════════════════════════════════════════
+  const base64Creds = process.env.GOOGLE_CREDS_BASE64;
+  if (base64Creds) {
     try {
-      const cleanCreds = cleanEnvJson(envCreds);
-      const credentials = JSON.parse(cleanCreds);
-      console.log(`[OK] Google Sheets credentials loaded from GOOGLE_CREDS_JSON env var (project: ${credentials.project_id || 'unknown'})`);
+      const decoded = Buffer.from(base64Creds.trim(), 'base64').toString('utf-8');
+      const credentials = JSON.parse(decoded);
       const auth = new google.auth.GoogleAuth({
         credentials,
         scopes: SCOPES,
       });
+      console.log(`[OK] Google Sheets auth via GOOGLE_CREDS_BASE64 (project: ${credentials.project_id || 'unknown'})`);
       return auth;
     } catch (error) {
-      console.error(`[ERR] Failed to parse GOOGLE_CREDS_JSON env var:`, error);
-      // Log the first 80 chars to help debug without leaking the full key
-      console.error(`[DEBUG] GOOGLE_CREDS_JSON starts with: ${envCreds.substring(0, 80)}...`);
+      console.error(`[ERR] Failed to parse GOOGLE_CREDS_BASE64:`, error);
     }
   }
 
-  // Fallback to local credentials file
-  if (!fs.existsSync(CREDENTIALS_FILE)) {
-    if (envCreds) {
-      // We already tried the env var and it failed — don't mislead with "not set"
-      console.error(`[ERR] Google credentials file not found at ${CREDENTIALS_FILE} and GOOGLE_CREDS_JSON env var could not be parsed (see error above).`);
-    } else {
-      console.error(`[ERR] Google credentials file not found at ${CREDENTIALS_FILE} and GOOGLE_CREDS_JSON environment variable is not set.`);
+  // ═══════════════════════════════════════════════════════════
+  //  METHOD 3: Raw JSON env var (GOOGLE_CREDS_JSON) — last resort
+  // ═══════════════════════════════════════════════════════════
+  const envCreds = process.env.GOOGLE_CREDS_JSON;
+  if (envCreds) {
+    try {
+      // Aggressive cleanup for hosting panels that mangle JSON
+      let s = envCreds.trim();
+      // Strip surrounding quotes
+      if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+        s = s.substring(1, s.length - 1);
+      }
+      // Remove ALL backslashes that precede non-JSON-escape characters
+      // Valid JSON escapes after \: " \ / b f n r t u
+      // Everything else (like \{ \} \p \a etc.) is invalid — strip the backslash
+      s = s.replace(/\\([^"\\\/bfnrtu])/g, '$1');
+      // Fix double-escaped sequences: \\n → \n, \\t → \t, etc.
+      s = s.replace(/\\\\n/g, '\\n');
+      s = s.replace(/\\\\t/g, '\\t');
+      s = s.replace(/\\\\r/g, '\\r');
+
+      const credentials = JSON.parse(s);
+      const auth = new google.auth.GoogleAuth({
+        credentials,
+        scopes: SCOPES,
+      });
+      console.log(`[OK] Google Sheets auth via GOOGLE_CREDS_JSON (project: ${credentials.project_id || 'unknown'})`);
+      return auth;
+    } catch (error) {
+      console.error(`[ERR] Failed to parse GOOGLE_CREDS_JSON:`, error);
+      console.error(`[DEBUG] First 80 chars: ${envCreds.substring(0, 80)}...`);
     }
-    return null;
   }
-  
-  try {
-    const auth = new google.auth.GoogleAuth({
-      keyFile: CREDENTIALS_FILE,
-      scopes: SCOPES,
-    });
-    console.log(`[OK] Google Sheets credentials loaded from file: ${CREDENTIALS_FILE}`);
-    return auth;
-  } catch (error) {
-    console.error(`[ERR] Failed to authenticate with Google Sheets:`, error);
-    return null;
+
+  // ═══════════════════════════════════════════════════════════
+  //  METHOD 4: Local credentials file (dev only)
+  // ═══════════════════════════════════════════════════════════
+  if (fs.existsSync(CREDENTIALS_FILE)) {
+    try {
+      const auth = new google.auth.GoogleAuth({
+        keyFile: CREDENTIALS_FILE,
+        scopes: SCOPES,
+      });
+      console.log(`[OK] Google Sheets auth via local file: ${CREDENTIALS_FILE}`);
+      return auth;
+    } catch (error) {
+      console.error(`[ERR] Failed to auth with credentials file:`, error);
+      return null;
+    }
   }
+
+  console.error(`[ERR] No Google credentials found. Set one of these on Hostinger:`);
+  console.error(`  → GOOGLE_CLIENT_EMAIL + GOOGLE_PRIVATE_KEY (recommended)`);
+  console.error(`  → GOOGLE_CREDS_BASE64`);
+  console.error(`  → GOOGLE_CREDS_JSON`);
+  return null;
 }
+
 
 /**
  * Appends a row of data to the specified Google Sheet.
