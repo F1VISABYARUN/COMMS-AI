@@ -1,0 +1,1 @@
+Restart trigger for Passenger. Git pull will update this file's timestamp and trigger an automatic server restart.
