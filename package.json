@@ -2,7 +2,7 @@
   "name": "comms-ai",
   "version": "1.0.0",
   "description": "Call Intelligence Platform",
-  "main": "dist/server.js",
+  "main": "server.js",
   "scripts": {
     "build": "tsc",
     "start": "node dist/server.js",
