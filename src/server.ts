@@ -8,6 +8,7 @@ import nunjucks from 'nunjucks';
 import twilio from 'twilio';
 import { randomUUID } from 'crypto';
 import * as path from 'path';
+import { supabase } from './supabaseClient';
 
 // Import our custom modules
 import { processCallTranscriptWithGemini, processCallAudioWithGemini, downloadTwilioRecording } from './geminiProcessor';
@@ -68,23 +69,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// --- In-memory store for call recordings (production: use a database) ---
-interface CallRecording {
-  id: string;
-  title?: string;
-  industry?: string;
-  source?: string; // 'twilio' or 'manual'
-  recording_sid?: string;
-  call_sid?: string;
-  recording_url?: string;
-  duration_seconds?: number;
-  caller: string;
-  status?: string;
-  timestamp: number;
-  transcript?: string;
-  result?: any;
-}
-const CALL_RECORDINGS: CallRecording[] = [];
+// --- Database is now handled by Supabase ---
+
 
 // Sample data for demo
 const SAMPLE_TRANSCRIPTS: { [key: string]: any } = {
@@ -330,13 +316,22 @@ app.post('/api/process', async (req, res) => {
     id: callId,
     title: matchedSample ? matchedSample.title : `Call with ${result.caller_name}`,
     industry: industry,
+    source: 'manual',
     caller: result.caller_name,
     timestamp: Date.now(),
     transcript: text,
     result: result
   };
 
-  CALL_RECORDINGS.push(processedRecord);
+  try {
+    const { error } = await supabase.from('recordings').insert([processedRecord]);
+    if (error) {
+      console.error('[ERR] Failed to insert manual record into Supabase:', error);
+    }
+  } catch (err) {
+    console.error('[ERR] Exception inserting manual record:', err);
+  }
+
   res.json(processedRecord);
 });
 
@@ -589,7 +584,7 @@ app.post('/twilio/recording-status', async (req, res) => {
   const caller = req.body.From || "Unknown";
   const status = req.body.RecordingStatus || "";
 
-  const record: CallRecording = {
+  const record = {
     id: randomUUID(),
     source: 'twilio',
     recording_sid: recordingSid,
@@ -600,9 +595,13 @@ app.post('/twilio/recording-status', async (req, res) => {
     status: status,
     timestamp: Date.now(),
     title: `Call from ${caller}`,
-    industry: 'general'
+    industry: 'general',
+    transcript: '',
+    result: null as any
   };
-  CALL_RECORDINGS.push(record);
+
+  // We wait to insert until after AI processing, so we insert the complete record
+
 
   console.log(`[REC] Recording ready — SID: ${recordingSid} | Duration: ${duration}s | From: ${caller}`);
   console.log(`   URL: ${recordingUrl}.mp3`);
@@ -674,10 +673,23 @@ app.post('/twilio/recording-status', async (req, res) => {
           callerEmail
         ];
 
-        // 5. Save to Google Sheets
+      // 5. Save AI results to Google Sheets
         const SHEET_ID = "1GEP1JtBcybnpVfDmeEr58zEhKMM1CgvfQP15wgljBJs";
         await appendCallData(SHEET_ID, rowData);
       }
+      
+      // 6. Save the final record to Supabase
+      try {
+        const { error } = await supabase.from('recordings').insert([record]);
+        if (error) {
+          console.error('[ERR] Failed to insert Twilio record into Supabase:', error);
+        } else {
+          console.log(`[OK] Saved recording ${record.id} to Supabase`);
+        }
+      } catch (err) {
+        console.error('[ERR] Exception inserting Twilio record to Supabase:', err);
+      }
+
     } catch (error) {
       console.error(`[ERR] Error processing recording ${recordingSid}:`, error);
     }
@@ -704,8 +716,26 @@ app.post('/twilio/call-status', (req, res) => {
 //  API: LIST RECORDINGS
 // ============================================================
 
-app.get('/api/recordings', (req, res) => {
-  res.json(CALL_RECORDINGS);
+app.get('/api/recordings', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('recordings')
+      .select('*')
+      .order('timestamp', { ascending: false })
+      .limit(50);
+      
+    if (error) {
+      console.error('[ERR] Failed to fetch recordings from Supabase:', error);
+      res.status(500).json({ error: 'Database error' });
+      return;
+    }
+    
+    // Fallback to empty array if no data
+    res.json(data || []);
+  } catch (err) {
+    console.error('[ERR] Exception fetching recordings:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
 });
 
 // ============================================================
