@@ -33,6 +33,7 @@ Analyze the transcript and provide a JSON response with the following exact keys
 - "action_items": A single string listing the main action items, separated by commas.
 - "follow_up_needed": A string, strictly "Yes" or "No".
 - "reminder_date": If follow up is needed, provide a date in YYYY-MM-DD format (e.g., if they say "tomorrow", calculate based on context, or just return "YYYY-MM-DD" relative to today. Since you don't know today's date, output a realistic target date or just "Next Week").
+- "caller_email": If the caller mentions their email address in the transcript (e.g., "my email is me@example.com"), extract it. Otherwise, return an empty string "".
 
 Respond ONLY with valid JSON. Do not include markdown formatting or backticks.
 `;

@@ -39,7 +39,7 @@ export async function appendCallData(sheetId: string, rowData: any[]): Promise<b
     const sheets = google.sheets({ version: 'v4', auth });
     await sheets.spreadsheets.values.append({
       spreadsheetId: sheetId,
-      range: 'Sheet1!A:G',
+      range: 'Sheet1!A:H',
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: [rowData]
@@ -65,7 +65,7 @@ export async function getPendingReminders(sheetId: string): Promise<any[]> {
     const sheets = google.sheets({ version: 'v4', auth });
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
-      range: 'Sheet1!A:G',
+      range: 'Sheet1!A:H',
     });
     
     const rows = response.data.values;

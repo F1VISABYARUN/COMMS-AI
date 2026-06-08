@@ -38,21 +38,32 @@ if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
 /**
  * Sends a notification email to the business owner with call action items.
  */
-async function sendEmailNotification(toEmail: string, caller: string, summary: string, actionItems: string): Promise<boolean> {
+async function sendEmailNotification(toEmail: string, caller: string, summary: string, actionItems: string, isCustomer: boolean): Promise<boolean> {
   if (!emailTransporter || !SMTP_USER) {
     console.warn("[WARN] SMTP Email settings not configured in .env. Skipping email dispatch.");
     return false;
   }
 
+  const subject = isCustomer 
+    ? `Follow-up: Our recent conversation` 
+    : `🔔 Follow-up Reminder: Call with ${caller}`;
+
+  const text = isCustomer
+    ? `Hi,\n\nFollowing up on our recent call, here is a summary of what we discussed and the next steps:\n\n` +
+      `Summary: ${summary}\n` +
+      `Action Items: ${actionItems}\n\n` +
+      `Please let me know if you have any questions!\n\nBest regards,\nSupport Team`
+    : `You have a pending follow-up reminder.\n\n` +
+      `Caller: ${caller}\n` +
+      `Summary: ${summary}\n` +
+      `Action Items: ${actionItems}\n\n` +
+      `This reminder has been processed and marked as Completed in Google Sheets.`;
+
   const mailOptions = {
     from: `"Comms AI Platform" <${SMTP_USER}>`,
     to: toEmail,
-    subject: `🔔 Follow-up Reminder: Call with ${caller}`,
-    text: `You have a pending follow-up reminder.\n\n` +
-          `Caller: ${caller}\n` +
-          `Summary: ${summary}\n` +
-          `Action Items: ${actionItems}\n\n` +
-          `This reminder has been processed and marked as Completed in Google Sheets.`
+    subject: subject,
+    text: text
   };
 
   try {
@@ -84,11 +95,12 @@ export async function checkAndSendFollowups(): Promise<void> {
     const rowIndex = item.row_index;
     const data = item.data;
     
-    // Headers: Date, Caller ID, Summary, Action Items, Follow-up Needed, Reminder Date, Status
+    // Headers: Date, Caller ID, Summary, Action Items, Follow-up Needed, Reminder Date, Status, Email
     const reminderDate = data['Reminder Date'] || '';
     const caller = data['Caller ID'] || 'Unknown';
     const summary = data['Summary'] || '';
     const actionItems = data['Action Items'] || '';
+    const email = data['Email'] || '';
 
     // Check if the reminder is due today or in the past
     if (reminderDate && reminderDate <= today) {
@@ -116,11 +128,14 @@ export async function checkAndSendFollowups(): Promise<void> {
         smsSent = false; // set to false if not configured to avoid false success reporting, or true if we want to bypass. Let's keep false.
       }
 
-      // 2. Dispatch Email alert to the Business Owner
-      if (MY_EMAIL && emailTransporter) {
-        emailSent = await sendEmailNotification(MY_EMAIL, caller, summary, actionItems);
+      // 2. Dispatch Email alert to the Customer (if email exists) or the Owner (as backup)
+      const recipientEmail = email || MY_EMAIL;
+      const isCustomer = !!email;
+
+      if (recipientEmail && emailTransporter) {
+        emailSent = await sendEmailNotification(recipientEmail, caller, summary, actionItems, isCustomer);
       } else {
-        console.warn(`[WARN] Owner Email (${MY_EMAIL}) or SMTP transporter not configured. Skipping Email.`);
+        console.warn(`[WARN] No recipient email (no customer email and MY_EMAIL not set) or SMTP transporter not configured. Skipping Email.`);
         emailSent = false;
       }
 

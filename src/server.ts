@@ -617,6 +617,7 @@ app.post('/twilio/recording-status', async (req, res) => {
     const actionItems = aiResult.action_items || "";
     const followUpNeeded = aiResult.follow_up_needed || "No";
     const reminderDate = aiResult.reminder_date || "";
+    const callerEmail = aiResult.caller_email || "";
 
     const rowData = [
       today,
@@ -625,7 +626,8 @@ app.post('/twilio/recording-status', async (req, res) => {
       actionItems,
       followUpNeeded,
       reminderDate,
-      followUpNeeded.toLowerCase() === "yes" ? "Pending" : "N/A"
+      followUpNeeded.toLowerCase() === "yes" ? "Pending" : "N/A",
+      callerEmail
     ];
 
     // 3. Save to Google Sheets
