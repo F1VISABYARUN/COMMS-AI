@@ -6,6 +6,30 @@ document.addEventListener("DOMContentLoaded", () => {
     const getRecords = () => JSON.parse(localStorage.getItem("commsai_records")) || [];
     const saveRecords = (records) => localStorage.setItem("commsai_records", JSON.stringify(records));
 
+    const fetchServerRecordings = async () => {
+        try {
+            const res = await fetch('/api/recordings');
+            if (!res.ok) return [];
+            const data = await res.json();
+            // Normalize server records to match the dashboard format
+            return data.filter(r => r.result).map(r => ({
+                id: r.id,
+                title: r.title || `Call from ${r.caller}`,
+                industry: r.industry || 'general',
+                caller: r.result?.caller_name || r.caller || 'Unknown',
+                timestamp: r.timestamp,
+                transcript: r.transcript || '',
+                recording_url: r.recording_url || '',
+                duration_seconds: r.duration_seconds || 0,
+                source: 'twilio',
+                result: r.result
+            }));
+        } catch (e) {
+            console.warn('Could not fetch server recordings:', e);
+            return [];
+        }
+    };
+
     const updateStats = () => {
         const records = getRecords();
         const el = (id) => document.getElementById(id);
@@ -526,7 +550,7 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     // ---- SCREEN 3: HISTORY PAGE ----
-    const initHistoryPage = () => {
+    const initHistoryPage = async () => {
         const historyList = document.getElementById("history-list");
         const emptyState = document.getElementById("empty-state");
         const searchInput = document.getElementById("search-input");
@@ -537,8 +561,15 @@ document.addEventListener("DOMContentLoaded", () => {
         let activeFilter = "all";
         let searchQuery = "";
 
+        // Fetch real Twilio call recordings from server
+        const serverRecords = await fetchServerRecordings();
+
         const renderHistory = () => {
-            const records = getRecords();
+            const localRecords = getRecords();
+            // Merge local + server records, server records take priority
+            const localIds = new Set(localRecords.map(r => r.id));
+            const uniqueServerRecords = serverRecords.filter(r => !localIds.has(r.id));
+            const records = [...localRecords, ...uniqueServerRecords].sort((a, b) => b.timestamp - a.timestamp);
 
             const filtered = records.filter(r => {
                 const res = r.result;

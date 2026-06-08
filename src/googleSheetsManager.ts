@@ -9,34 +9,68 @@ const SCOPES = [
 
 const CREDENTIALS_FILE = path.join(process.cwd(), 'google_credentials.json');
 
+/**
+ * Cleans up a JSON string that may have been mangled by hosting panel env var editors.
+ * Hostinger (and similar panels) often:
+ *  - Wrap the entire value in extra quotes
+ *  - Double-escape backslashes (\\\\n → \\n)
+ *  - Escape inner double quotes (\\" → ")
+ *  - Add leading/trailing backslashes
+ */
+function cleanEnvJson(raw: string): string {
+  let s = raw.trim();
+
+  // Strip surrounding single or double quotes added by the panel
+  if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+    s = s.substring(1, s.length - 1);
+  }
+
+  // Strip leading/trailing backslashes
+  while (s.startsWith('\\')) s = s.substring(1);
+  while (s.endsWith('\\')) s = s.substring(0, s.length - 1);
+  s = s.trim();
+
+  // Replace escaped double quotes \" → "
+  s = s.replace(/\\"/g, '"');
+
+  // Fix double-escaped newlines: \\\\n → \\n (literal four-char sequence to two-char)
+  // This handles cases where the panel stored \\n as \\\\n
+  s = s.replace(/\\\\n/g, '\\n');
+
+  // Fix triple/quad-escaped newlines just in case
+  s = s.replace(/\\\\\\\\n/g, '\\n');
+
+  return s;
+}
+
 function getAuthClient() {
   // Try loading from Environment Variable first (best for cloud hosts)
   const envCreds = process.env.GOOGLE_CREDS_JSON;
   if (envCreds) {
     try {
-      // Clean up potential escaping issues from environment variable panels
-      let cleanCreds = envCreds.trim();
-      if (cleanCreds.startsWith('\\')) {
-        cleanCreds = cleanCreds.substring(1);
-      }
-      if (cleanCreds.endsWith('\\')) {
-        cleanCreds = cleanCreds.substring(0, cleanCreds.length - 1);
-      }
-      
+      const cleanCreds = cleanEnvJson(envCreds);
       const credentials = JSON.parse(cleanCreds);
+      console.log(`[OK] Google Sheets credentials loaded from GOOGLE_CREDS_JSON env var (project: ${credentials.project_id || 'unknown'})`);
       const auth = new google.auth.GoogleAuth({
         credentials,
         scopes: SCOPES,
       });
       return auth;
     } catch (error) {
-      console.error(`[ERR] Failed to authenticate with Google Sheets using GOOGLE_CREDS_JSON env var:`, error);
+      console.error(`[ERR] Failed to parse GOOGLE_CREDS_JSON env var:`, error);
+      // Log the first 80 chars to help debug without leaking the full key
+      console.error(`[DEBUG] GOOGLE_CREDS_JSON starts with: ${envCreds.substring(0, 80)}...`);
     }
   }
 
   // Fallback to local credentials file
   if (!fs.existsSync(CREDENTIALS_FILE)) {
-    console.error(`[ERR] Google credentials file not found at ${CREDENTIALS_FILE} and GOOGLE_CREDS_JSON environment variable is not set.`);
+    if (envCreds) {
+      // We already tried the env var and it failed — don't mislead with "not set"
+      console.error(`[ERR] Google credentials file not found at ${CREDENTIALS_FILE} and GOOGLE_CREDS_JSON env var could not be parsed (see error above).`);
+    } else {
+      console.error(`[ERR] Google credentials file not found at ${CREDENTIALS_FILE} and GOOGLE_CREDS_JSON environment variable is not set.`);
+    }
     return null;
   }
   
@@ -45,6 +79,7 @@ function getAuthClient() {
       keyFile: CREDENTIALS_FILE,
       scopes: SCOPES,
     });
+    console.log(`[OK] Google Sheets credentials loaded from file: ${CREDENTIALS_FILE}`);
     return auth;
   } catch (error) {
     console.error(`[ERR] Failed to authenticate with Google Sheets:`, error);

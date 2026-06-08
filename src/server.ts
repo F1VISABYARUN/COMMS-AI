@@ -10,7 +10,7 @@ import { randomUUID } from 'crypto';
 import * as path from 'path';
 
 // Import our custom modules
-import { processCallTranscriptWithGemini } from './geminiProcessor';
+import { processCallTranscriptWithGemini, processCallAudioWithGemini, downloadTwilioRecording } from './geminiProcessor';
 import { appendCallData } from './googleSheetsManager';
 import { startScheduler } from './followupProcessor';
 
@@ -71,6 +71,9 @@ app.use((req, res, next) => {
 // --- In-memory store for call recordings (production: use a database) ---
 interface CallRecording {
   id: string;
+  title?: string;
+  industry?: string;
+  source?: string; // 'twilio' or 'manual'
   recording_sid?: string;
   call_sid?: string;
   recording_url?: string;
@@ -588,54 +591,98 @@ app.post('/twilio/recording-status', async (req, res) => {
 
   const record: CallRecording = {
     id: randomUUID(),
+    source: 'twilio',
     recording_sid: recordingSid,
     call_sid: callSid,
     recording_url: recordingUrl ? `${recordingUrl}.mp3` : "",
     duration_seconds: parseInt(duration, 10),
     caller: caller,
     status: status,
-    timestamp: Date.now()
+    timestamp: Date.now(),
+    title: `Call from ${caller}`,
+    industry: 'general'
   };
   CALL_RECORDINGS.push(record);
 
   console.log(`[REC] Recording ready — SID: ${recordingSid} | Duration: ${duration}s | From: ${caller}`);
   console.log(`   URL: ${recordingUrl}.mp3`);
 
-  // Placeholder transcript (in production, you would transcribe audio)
-  const transcript = "Caller said they need to review the recent project proposal. They want me to call them back next Tuesday to discuss the pricing.";
-  record.transcript = transcript;
-
-  // 1. Process the transcript with Gemini
-  console.log(`[AI] Sending transcript to Gemini for analysis...`);
-  const aiResult = await processCallTranscriptWithGemini(transcript, caller);
-  record.result = aiResult;
-
-  if (aiResult) {
-    // 2. Prepare data for Google Sheets
-    const today = new Date().toISOString().split('T')[0];
-    const summary = aiResult.summary || "";
-    const actionItems = aiResult.action_items || "";
-    const followUpNeeded = aiResult.follow_up_needed || "No";
-    const reminderDate = aiResult.reminder_date || "";
-    const callerEmail = aiResult.caller_email || "";
-
-    const rowData = [
-      today,
-      caller,
-      summary,
-      actionItems,
-      followUpNeeded,
-      reminderDate,
-      followUpNeeded.toLowerCase() === "yes" ? "Pending" : "N/A",
-      callerEmail
-    ];
-
-    // 3. Save to Google Sheets
-    const SHEET_ID = "1GEP1JtBcybnpVfDmeEr58zEhKMM1CgvfQP15wgljBJs";
-    await appendCallData(SHEET_ID, rowData);
-  }
-
+  // Respond to Twilio immediately so it doesn't timeout
   res.json({ status: "received" });
+
+  // Process the recording asynchronously
+  (async () => {
+    try {
+      let aiResult: any = null;
+      let transcript = '';
+
+      // 1. Download the recording audio from Twilio
+      if (recordingUrl) {
+        console.log(`[AI] Downloading recording audio...`);
+        const audioBuffer = await downloadTwilioRecording(recordingUrl);
+
+        if (audioBuffer && audioBuffer.length > 0) {
+          // 2. Send audio to Gemini for transcription + analysis
+          console.log(`[AI] Sending audio to Gemini for transcription & analysis...`);
+          aiResult = await processCallAudioWithGemini(audioBuffer, caller);
+
+          if (aiResult && aiResult.transcript) {
+            transcript = aiResult.transcript;
+            record.transcript = transcript;
+            record.result = aiResult;
+            // Update record with AI-extracted fields for the dashboard
+            if (aiResult.caller_name && aiResult.caller_name !== 'Unknown Caller') {
+              record.title = `Call with ${aiResult.caller_name}`;
+              record.caller = aiResult.caller_name;
+            }
+            console.log(`[AI] Transcription complete (${transcript.length} chars)`);
+          } else {
+            console.warn(`[WARN] Gemini audio processing returned no transcript, falling back to text analysis.`);
+          }
+        } else {
+          console.warn(`[WARN] Failed to download recording audio, falling back to text analysis.`);
+        }
+      }
+
+      // 3. Fallback: if audio processing didn't produce a result, try text-based analysis with a note
+      if (!aiResult) {
+        transcript = `[Audio recording from ${caller}, duration: ${duration}s. Audio transcription was unavailable.]`;
+        record.transcript = transcript;
+
+        console.log(`[AI] Sending fallback text to Gemini for analysis...`);
+        aiResult = await processCallTranscriptWithGemini(transcript, caller);
+        record.result = aiResult;
+      }
+
+      if (aiResult) {
+        // 4. Prepare data for Google Sheets
+        const today = new Date().toISOString().split('T')[0];
+        const summary = aiResult.summary || "";
+        const actionItems = aiResult.action_items || "";
+        const followUpNeeded = aiResult.follow_up_needed || "No";
+        const reminderDate = aiResult.reminder_date || "";
+        const callerEmail = aiResult.caller_email || "";
+
+        const rowData = [
+          today,
+          caller,
+          summary,
+          actionItems,
+          followUpNeeded,
+          reminderDate,
+          followUpNeeded.toLowerCase() === "yes" ? "Pending" : "N/A",
+          callerEmail
+        ];
+
+        // 5. Save to Google Sheets
+        const SHEET_ID = "1GEP1JtBcybnpVfDmeEr58zEhKMM1CgvfQP15wgljBJs";
+        await appendCallData(SHEET_ID, rowData);
+      }
+    } catch (error) {
+      console.error(`[ERR] Error processing recording ${recordingSid}:`, error);
+    }
+  })();
+
 });
 
 // ============================================================
