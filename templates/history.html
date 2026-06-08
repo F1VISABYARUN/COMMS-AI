@@ -1,0 +1,89 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="space-y-7 animate-fade-in pb-12">
+
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-900 tracking-tight">Customer Memory Timeline</h2>
+            <p class="text-sm text-gray-500 mt-1">Audit log of all processed customer interactions, tasks, and follow-ups.</p>
+        </div>
+        <a href="/" class="btn-primary px-4 py-2.5 rounded-lg text-xs self-start md:self-auto">
+            <i class="fa-solid fa-plus"></i> New Call
+        </a>
+    </div>
+
+    <!-- KPI Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="stat-card">
+            <div class="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center text-violet-500 text-base">
+                <i class="fa-solid fa-phone"></i>
+            </div>
+            <div>
+                <span class="block text-xs font-bold text-gray-400 uppercase tracking-wider">Processed Calls</span>
+                <span id="stat-total-calls" class="text-xl font-bold text-gray-900">0</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center text-red-500 text-base">
+                <i class="fa-solid fa-fire"></i>
+            </div>
+            <div>
+                <span class="block text-xs font-bold text-gray-400 uppercase tracking-wider">Urgent Items</span>
+                <span id="stat-urgent-tasks" class="text-xl font-bold text-red-600">0</span>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-500 text-base">
+                <i class="fa-solid fa-clipboard-check"></i>
+            </div>
+            <div>
+                <span class="block text-xs font-bold text-gray-400 uppercase tracking-wider">Total Tasks</span>
+                <span id="stat-total-tasks" class="text-xl font-bold text-emerald-600">0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search & Filters -->
+    <div class="card p-6 space-y-5">
+        <div class="flex flex-col md:flex-row gap-4 items-center justify-between">
+            <!-- Search -->
+            <div class="relative w-full md:w-80">
+                <input type="text" id="search-input" class="form-input w-full pl-10 pr-4 py-2.5 rounded-lg text-sm" placeholder="Search by name, summary...">
+                <i class="fa-solid fa-magnifying-glass text-gray-400 absolute left-3.5 top-3 text-xs"></i>
+            </div>
+
+            <!-- Filter Chips -->
+            <div class="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0" id="filter-chips">
+                <button data-filter="all" class="chip-btn filter-chip active">All</button>
+                <button data-filter="insurance" class="chip-btn filter-chip">Insurance</button>
+                <button data-filter="real_estate" class="chip-btn filter-chip">Real Estate</button>
+                <button data-filter="clinic" class="chip-btn filter-chip">Clinic</button>
+                <button data-filter="coaching" class="chip-btn filter-chip">Coaching</button>
+                <button data-filter="logistics" class="chip-btn filter-chip">Logistics</button>
+            </div>
+        </div>
+
+        <!-- Call List -->
+        <div id="history-list" class="space-y-3"></div>
+
+        <!-- Empty State -->
+        <div id="empty-state" class="hidden flex flex-col items-center justify-center text-center py-16 space-y-4">
+            <div class="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center text-gray-300 text-2xl">
+                <i class="fa-solid fa-folder-open"></i>
+            </div>
+            <div>
+                <h4 class="text-sm font-semibold text-gray-700">No calls processed yet</h4>
+                <p class="text-xs text-gray-400 mt-1 max-w-xs mx-auto">Upload audio or paste transcripts to generate intelligence logs.</p>
+            </div>
+            <a href="/" class="btn-primary px-5 py-2.5 rounded-lg text-xs">
+                Process Your First Call
+            </a>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

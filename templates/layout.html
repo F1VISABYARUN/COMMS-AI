@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comms AI | Call Intelligence Platform</title>
+    <meta name="description" content="Turn every call into structured CRM actions, tasks, and follow-up drafts using AI.">
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="h-full min-h-screen flex flex-col md:flex-row">
+
+    <!-- Mobile Nav Header -->
+    <header class="md:hidden bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between z-50">
+        <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center shadow-sm">
+                <i class="fa-solid fa-bolt text-white text-xs"></i>
+            </div>
+            <span class="font-bold text-gray-900 text-sm tracking-tight">Comms AI</span>
+        </div>
+        <button id="mobile-menu-toggle" class="text-gray-500 text-xl hover:text-gray-900 transition-colors">
+            <i class="fa-solid fa-bars"></i>
+        </button>
+    </header>
+
+    <!-- Sidebar -->
+    <aside id="sidebar-panel" class="sidebar w-full md:w-60 flex-shrink-0 flex-col justify-between hidden md:flex fixed md:relative h-[calc(100vh-53px)] md:h-screen z-40">
+        <div>
+            <!-- Logo -->
+            <div class="p-5 pb-4 hidden md:flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-violet-600 flex items-center justify-center shadow-sm shadow-violet-200">
+                    <i class="fa-solid fa-bolt text-white text-sm"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-gray-900 text-[15px] leading-none tracking-tight">Comms AI</h1>
+                    <span class="text-[10px] text-gray-400 font-medium tracking-wide">Call Intelligence</span>
+                </div>
+            </div>
+
+            <!-- Navigation -->
+            <nav class="px-3 mt-1 space-y-1">
+                <a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}">
+                    <i class="fa-solid fa-circle-plus text-sm w-5 text-center"></i>
+                    Process Call
+                </a>
+                <a href="/history" class="nav-link {% if request.path == '/history' %}active{% endif %}">
+                    <i class="fa-solid fa-clock-rotate-left text-sm w-5 text-center"></i>
+                    Customer Memory Timeline
+                </a>
+            </nav>
+        </div>
+
+        <!-- Profile -->
+        <div class="p-4 border-t border-gray-100">
+            <div class="flex items-center gap-3 px-1">
+                <div class="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center text-violet-600 font-semibold text-[11px]">
+                    CO
+                </div>
+                <div>
+                    <div class="text-xs font-semibold text-gray-800">Co-Founder Demo</div>
+                    <div class="text-[10px] text-gray-400">Targeting US Market</div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-grow flex flex-col h-[calc(100vh-53px)] md:h-screen overflow-y-auto bg-[#f7f8fa]">
+        <div class="flex-grow p-5 md:p-8 max-w-6xl w-full mx-auto pb-16">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        const toggleBtn = document.getElementById('mobile-menu-toggle');
+        const sidebar = document.getElementById('sidebar-panel');
+        if (toggleBtn && sidebar) {
+            toggleBtn.addEventListener('click', () => {
+                sidebar.classList.toggle('hidden');
+                sidebar.classList.toggle('flex');
+            });
+        }
+    </script>
+</body>
+</html>

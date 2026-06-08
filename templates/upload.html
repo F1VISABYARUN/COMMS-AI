@@ -1,0 +1,162 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="space-y-7 animate-fade-in">
+
+    <!-- Page Header -->
+    <div>
+        <h2 class="text-2xl font-bold text-gray-900 tracking-tight">Process New Call</h2>
+        <p class="text-sm text-gray-500 mt-1">Paste a transcript or upload audio to extract structured intelligence, tasks, and follow-ups.</p>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Left: Input Form -->
+        <div class="lg:col-span-2 space-y-5">
+
+            <div class="card p-6 space-y-6">
+                <!-- Industry Selector -->
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-800">Industry Vertical</label>
+                        <span class="text-xs text-gray-400">Select the context for AI extraction rules</span>
+                    </div>
+
+                    <div id="industry-selectors" class="flex flex-wrap gap-2">
+                        <button data-industry="insurance" class="industry-btn industry-chip">
+                            <i class="fa-solid fa-shield-halved text-[11px]"></i> Insurance
+                        </button>
+                        <button data-industry="real_estate" class="industry-btn industry-chip">
+                            <i class="fa-solid fa-house-chimney text-[11px]"></i> Real Estate
+                        </button>
+                        <button data-industry="clinic" class="industry-btn industry-chip">
+                            <i class="fa-solid fa-user-doctor text-[11px]"></i> Clinic
+                        </button>
+                        <button data-industry="coaching" class="industry-btn industry-chip">
+                            <i class="fa-solid fa-graduation-cap text-[11px]"></i> Coaching
+                        </button>
+                        <button data-industry="logistics" class="industry-btn industry-chip">
+                            <i class="fa-solid fa-truck-ramp-box text-[11px]"></i> Logistics
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Textarea -->
+                <div class="space-y-2">
+                    <label for="transcript-input" class="block text-sm font-semibold text-gray-800">Call Transcript</label>
+                    <textarea id="transcript-input" rows="8" class="form-input w-full p-4 rounded-xl text-sm leading-relaxed resize-none" placeholder="Paste your conversation transcript here, or click a demo preset on the right..."></textarea>
+                </div>
+
+                <!-- File Upload -->
+                <div class="border border-dashed border-gray-300 rounded-xl p-5 bg-gray-50/50 flex flex-col items-center justify-center text-center cursor-pointer hover:border-violet-400 hover:bg-violet-50/30 transition-all group relative overflow-hidden">
+                    <input type="file" id="audio-file" accept="audio/*" class="absolute inset-0 opacity-0 cursor-pointer">
+                    <div class="py-1">
+                        <i class="fa-solid fa-cloud-arrow-up text-gray-300 group-hover:text-violet-500 text-2xl mb-2 transition-colors"></i>
+                        <p class="text-xs font-medium text-gray-600">Import call audio (.mp3, .wav, .m4a)</p>
+                        <span class="text-[10px] text-gray-400">Speech-to-text will process the audio file</span>
+                    </div>
+                </div>
+
+                <!-- Process Button -->
+                <div class="flex justify-end">
+                    <button id="process-btn" class="btn-primary px-6 py-3 rounded-lg text-sm">
+                        <i class="fa-solid fa-bolt"></i> Process Call
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right: Demo Presets -->
+        <div class="space-y-5">
+            <div class="card p-6 space-y-4">
+                <div>
+                    <h3 class="text-sm font-semibold text-gray-800 flex items-center gap-2">
+                        <i class="fa-solid fa-bolt text-violet-500 text-xs"></i> Demo Presets
+                    </h3>
+                    <p class="text-[11px] text-gray-400 mt-0.5">Click a preset to load a real-world call scenario</p>
+                </div>
+
+                <div class="space-y-2.5">
+                    <!-- Insurance -->
+                    <button data-sample="insurance" class="sample-preset-btn preset-card">
+                        <div class="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-100 flex flex-shrink-0 items-center justify-center text-emerald-500 text-xs">
+                            <i class="fa-solid fa-shield"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs font-semibold text-gray-800">Commercial Insurance</div>
+                            <p class="text-[10px] text-gray-400 line-clamp-2 mt-0.5 leading-relaxed">Bob wants to add a Ford F-250 truck and remove a sold warehouse from his policy.</p>
+                        </div>
+                    </button>
+
+                    <!-- Real Estate -->
+                    <button data-sample="real_estate" class="sample-preset-btn preset-card">
+                        <div class="w-8 h-8 rounded-lg bg-blue-50 border border-blue-100 flex flex-shrink-0 items-center justify-center text-blue-500 text-xs">
+                            <i class="fa-solid fa-house"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs font-semibold text-gray-800">Real Estate Agency</div>
+                            <p class="text-[10px] text-gray-400 line-clamp-2 mt-0.5 leading-relaxed">Rahul seeks a ₹2.2Cr East-facing 3BHK in Gachibowli with Vastu compliance.</p>
+                        </div>
+                    </button>
+
+                    <!-- Clinic -->
+                    <button data-sample="clinic" class="sample-preset-btn preset-card">
+                        <div class="w-8 h-8 rounded-lg bg-pink-50 border border-pink-100 flex flex-shrink-0 items-center justify-center text-pink-500 text-xs">
+                            <i class="fa-solid fa-heart-pulse"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs font-semibold text-gray-800">Medical Clinic</div>
+                            <p class="text-[10px] text-gray-400 line-clamp-2 mt-0.5 leading-relaxed">Meera calls for thyroid results and needs a follow-up with Dr. Prasad.</p>
+                        </div>
+                    </button>
+
+                    <!-- Coaching -->
+                    <button data-sample="coaching" class="sample-preset-btn preset-card">
+                        <div class="w-8 h-8 rounded-lg bg-purple-50 border border-purple-100 flex flex-shrink-0 items-center justify-center text-purple-500 text-xs">
+                            <i class="fa-solid fa-graduation-cap"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs font-semibold text-gray-800">EdTech / Coaching</div>
+                            <p class="text-[10px] text-gray-400 line-clamp-2 mt-0.5 leading-relaxed">Sandeep asks about GRE classes, fee installments, and requests a demo seat.</p>
+                        </div>
+                    </button>
+
+                    <!-- Logistics -->
+                    <button data-sample="logistics" class="sample-preset-btn preset-card">
+                        <div class="w-8 h-8 rounded-lg bg-amber-50 border border-amber-100 flex flex-shrink-0 items-center justify-center text-amber-500 text-xs">
+                            <i class="fa-solid fa-truck"></i>
+                        </div>
+                        <div>
+                            <div class="text-xs font-semibold text-gray-800">Logistics / Dispatch</div>
+                            <p class="text-[10px] text-gray-400 line-clamp-2 mt-0.5 leading-relaxed">Marcus escalates about stuck shipment #45218 and threatens cancellation.</p>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Processing Overlay -->
+    <div id="processing-loader" class="fixed inset-0 bg-white/95 backdrop-blur-sm z-50 hidden flex-col items-center justify-center text-center p-4">
+        <div class="w-14 h-14 rounded-2xl bg-violet-600 flex items-center justify-center shadow-lg shadow-violet-200 mb-6">
+            <i class="fa-solid fa-bolt text-white text-2xl animate-pulse"></i>
+        </div>
+
+        <h3 class="text-lg font-bold text-gray-900 tracking-tight">Processing Call Intelligence</h3>
+        <p id="loader-status" class="text-sm text-gray-500 mt-2 max-w-xs h-6">Initializing extraction engine...</p>
+
+        <!-- Progress Bar -->
+        <div class="w-56 h-1.5 bg-gray-100 rounded-full mt-6 overflow-hidden relative">
+            <div class="h-full bg-violet-500 rounded-full absolute top-0 w-1/3" style="animation: progressSlide 1.5s ease-in-out infinite;"></div>
+        </div>
+
+        <div class="mt-6 space-y-1">
+            <div class="text-[11px] text-gray-400 font-medium">Parsing conversation structure...</div>
+            <div class="text-[11px] text-gray-400 font-medium">Extracting action items and context...</div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

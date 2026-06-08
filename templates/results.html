@@ -1,0 +1,172 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="space-y-7 animate-fade-in pb-12">
+
+    <!-- Top Header Bar -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-gray-200 pb-6">
+        <div>
+            <div class="flex items-center gap-2 mb-1">
+                <span id="call-industry-badge" class="badge badge-accent uppercase text-[10px]">Insurance</span>
+                <span id="call-urgency-badge" class="badge badge-red uppercase text-[10px]">High Urgency</span>
+            </div>
+            <h2 id="call-title" class="text-2xl font-bold text-gray-900 tracking-tight">Call with Bob Henderson</h2>
+            <p class="text-xs text-gray-400 mt-0.5">Processed just now • AI Intelligence Engine</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <a href="/" class="btn-secondary px-4 py-2.5 rounded-lg text-xs">Cancel</a>
+            <button id="save-approve-btn" class="btn-primary px-5 py-2.5 rounded-lg text-xs">
+                <i class="fa-solid fa-check"></i> Save &amp; Push to Timeline
+            </button>
+        </div>
+    </div>
+
+    <!-- Results Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- Left Column: Analysis -->
+        <div class="lg:col-span-2 space-y-5">
+
+            <!-- Summary -->
+            <div class="card p-6 space-y-3">
+                <h3 class="text-sm font-semibold text-gray-800 flex items-center gap-2">
+                    <i class="fa-solid fa-list-check text-violet-500 text-xs"></i> Executive Summary
+                </h3>
+                <textarea id="call-summary" rows="3" class="form-input w-full p-3.5 rounded-xl text-sm leading-relaxed resize-none" placeholder="Enter call summary..."></textarea>
+            </div>
+
+            <!-- Key Fields Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="card p-5 space-y-2">
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider">Contact Name</label>
+                    <input type="text" id="field-caller-name" class="form-input w-full px-3 py-2.5 rounded-lg text-sm">
+                </div>
+                <div class="card p-5 space-y-2">
+                    <label id="label-policy-type" class="block text-xs font-bold text-gray-400 uppercase tracking-wider">Product / Category</label>
+                    <input type="text" id="field-policy-type" class="form-input w-full px-3 py-2.5 rounded-lg text-sm">
+                </div>
+                <div class="card p-5 space-y-2">
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider">Urgency</label>
+                    <select id="field-urgency" class="form-input w-full px-3 py-2.5 rounded-lg text-sm">
+                        <option value="high">🔴 High — Immediate action</option>
+                        <option value="medium">🟡 Medium — Follow up needed</option>
+                        <option value="low">🟢 Low — General inquiry</option>
+                    </select>
+                </div>
+                <div class="card p-5 space-y-2">
+                    <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider">Intent</label>
+                    <input type="text" id="field-intent" class="form-input w-full px-3 py-2.5 rounded-lg text-sm">
+                </div>
+            </div>
+
+            <!-- Objections & Missing Info -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Objections -->
+                <div class="card p-5 space-y-3">
+                    <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-triangle-exclamation text-amber-500 text-[10px]"></i> Objections / Concerns
+                    </h4>
+                    <div id="objections-container" class="space-y-2"></div>
+                    <button id="add-objection-btn" class="text-[11px] font-semibold text-violet-600 hover:text-violet-800 transition-colors flex items-center gap-1 mt-1">
+                        <i class="fa-solid fa-plus text-[9px]"></i> Add Objection
+                    </button>
+                </div>
+                <!-- Missing Info -->
+                <div class="card p-5 space-y-3">
+                    <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-circle-question text-violet-500 text-[10px]"></i> Missing Info
+                    </h4>
+                    <div id="missing-container" class="space-y-2"></div>
+                    <button id="add-missing-btn" class="text-[11px] font-semibold text-violet-600 hover:text-violet-800 transition-colors flex items-center gap-1 mt-1">
+                        <i class="fa-solid fa-plus text-[9px]"></i> Add Item
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tasks -->
+            <div class="card p-6 space-y-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-semibold text-gray-800 flex items-center gap-2">
+                        <i class="fa-solid fa-clipboard-list text-violet-500 text-xs"></i> Action Items
+                    </h3>
+                    <button id="add-task-btn" class="text-xs font-semibold text-violet-600 hover:text-violet-800 transition-colors flex items-center gap-1">
+                        <i class="fa-solid fa-plus text-[10px]"></i> Add Task
+                    </button>
+                </div>
+                <div id="tasks-container" class="space-y-2.5"></div>
+            </div>
+
+            <!-- Transcript Collapse -->
+            <div class="card p-6">
+                <button id="transcript-toggle-btn" class="w-full flex items-center justify-between text-left text-sm font-semibold text-gray-600 hover:text-gray-900 transition-colors focus:outline-none">
+                    <span class="flex items-center gap-2">
+                        <i class="fa-solid fa-align-left text-gray-400 text-xs"></i> Original Transcript
+                    </span>
+                    <i class="fa-solid fa-chevron-down text-gray-400 transition-transform duration-300 text-xs" id="transcript-chevron"></i>
+                </button>
+                <div id="transcript-body" class="hidden mt-4 pt-4 border-t border-gray-100 text-xs text-gray-500 leading-relaxed font-mono whitespace-pre-line bg-gray-50 p-4 rounded-lg"></div>
+            </div>
+        </div>
+
+        <!-- Right Column: Follow-Up Drafts -->
+        <div class="space-y-5">
+            <div class="card p-6 space-y-4">
+                <div>
+                    <h3 class="text-sm font-semibold text-gray-800 flex items-center gap-2">
+                        <i class="fa-regular fa-paper-plane text-violet-500 text-xs"></i> Follow-Up Drafts
+                    </h3>
+                    <p class="text-[11px] text-gray-400 mt-0.5">Ready-to-send message templates</p>
+                </div>
+
+                <!-- Tabs -->
+                <div class="flex border-b border-gray-200">
+                    <button data-tab="whatsapp" class="follow-up-tab follow-tab">
+                        <i class="fa-brands fa-whatsapp text-green-500"></i> WhatsApp
+                    </button>
+                    <button data-tab="email" class="follow-up-tab follow-tab">
+                        <i class="fa-regular fa-envelope text-blue-500"></i> Email
+                    </button>
+                    <button data-tab="sms" class="follow-up-tab follow-tab">
+                        <i class="fa-solid fa-comment-sms text-violet-500"></i> SMS
+                    </button>
+                </div>
+
+                <!-- Draft Editor -->
+                <div class="space-y-3">
+                    <textarea id="message-draft" rows="10" class="form-input w-full p-3.5 rounded-xl text-xs font-mono leading-relaxed resize-none" placeholder="Compose message draft..."></textarea>
+
+                    <!-- Recipient Phone Number -->
+                    <div class="space-y-1.5">
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Recipient Phone (with country code)</label>
+                        <input type="tel" id="recipient-phone" class="form-input w-full px-3 py-2.5 rounded-lg text-xs" placeholder="+91 98765 43210">
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="grid grid-cols-2 gap-2">
+                        <button id="copy-message-btn" class="btn-secondary py-2.5 rounded-lg text-xs flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-copy"></i> Copy
+                        </button>
+                        <button id="send-message-btn" class="btn-primary py-2.5 rounded-lg text-xs flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-paper-plane"></i> Send
+                        </button>
+                    </div>
+
+                    <!-- Call Button -->
+                    <button id="make-call-btn" class="w-full py-2.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white transition-colors">
+                        <i class="fa-solid fa-phone"></i> Call This Contact
+                    </button>
+
+                    <!-- Status Indicator -->
+                    <div id="send-status" class="hidden text-xs text-center py-2 rounded-lg font-semibold"></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    window.CURRENT_CALL_ID = "{{ call_id }}";
+</script>
+{% endblock %}
