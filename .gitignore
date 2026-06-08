@@ -17,3 +17,7 @@ __pycache__/
 
 # Logs
 *.log
+
+# Node & Build
+node_modules/
+dist/
