@@ -20,8 +20,13 @@ function getAuthClient() {
 
   if (clientEmail && privateKeyRaw) {
     try {
-      // The private key PEM uses real newlines, but env vars store them as literal \n
-      const privateKey = privateKeyRaw.replace(/\\n/g, '\n');
+      // The private key PEM uses real newlines, but env vars may store them as:
+      //   \n  (literal backslash + n)  — normal case
+      //   \\n (double-escaped)         — Hostinger adds extra backslash
+      // Handle double-escaped first, then single-escaped
+      const privateKey = privateKeyRaw
+        .replace(/\\\\n/g, '\n')
+        .replace(/\\n/g, '\n');
       const auth = new google.auth.GoogleAuth({
         credentials: {
           type: 'service_account',
