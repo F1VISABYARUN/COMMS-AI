@@ -20,4 +20,3 @@ __pycache__/
 
 # Node & Build
 node_modules/
-dist/
