@@ -14,7 +14,16 @@ function getAuthClient() {
   const envCreds = process.env.GOOGLE_CREDS_JSON;
   if (envCreds) {
     try {
-      const credentials = JSON.parse(envCreds);
+      // Clean up potential escaping issues from environment variable panels
+      let cleanCreds = envCreds.trim();
+      if (cleanCreds.startsWith('\\')) {
+        cleanCreds = cleanCreds.substring(1);
+      }
+      if (cleanCreds.endsWith('\\')) {
+        cleanCreds = cleanCreds.substring(0, cleanCreds.length - 1);
+      }
+      
+      const credentials = JSON.parse(cleanCreds);
       const auth = new google.auth.GoogleAuth({
         credentials,
         scopes: SCOPES,
