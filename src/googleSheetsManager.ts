@@ -10,8 +10,24 @@ const SCOPES = [
 const CREDENTIALS_FILE = path.join(process.cwd(), 'google_credentials.json');
 
 function getAuthClient() {
+  // Try loading from Environment Variable first (best for cloud hosts)
+  const envCreds = process.env.GOOGLE_CREDS_JSON;
+  if (envCreds) {
+    try {
+      const credentials = JSON.parse(envCreds);
+      const auth = new google.auth.GoogleAuth({
+        credentials,
+        scopes: SCOPES,
+      });
+      return auth;
+    } catch (error) {
+      console.error(`[ERR] Failed to authenticate with Google Sheets using GOOGLE_CREDS_JSON env var:`, error);
+    }
+  }
+
+  // Fallback to local credentials file
   if (!fs.existsSync(CREDENTIALS_FILE)) {
-    console.error(`[ERR] Google credentials file not found at ${CREDENTIALS_FILE}`);
+    console.error(`[ERR] Google credentials file not found at ${CREDENTIALS_FILE} and GOOGLE_CREDS_JSON environment variable is not set.`);
     return null;
   }
   
