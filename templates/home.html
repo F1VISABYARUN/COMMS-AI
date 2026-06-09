@@ -1,0 +1,136 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="space-y-7 animate-fade-in pb-12">
+
+    <!-- SaaS Hero Slogan Banner -->
+    <div class="card p-6 md:p-8 bg-gradient-to-br from-violet-600 to-indigo-700 text-white relative overflow-hidden shadow-lg border-0">
+        <!-- Background light shapes for premium look -->
+        <div class="absolute -right-10 -top-10 w-40 h-40 bg-white/10 rounded-full blur-2xl"></div>
+        <div class="absolute -left-10 -bottom-10 w-56 h-56 bg-indigo-500/20 rounded-full blur-3xl"></div>
+
+        <div class="relative z-10 max-w-3xl space-y-4">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-sm text-[10px] uppercase font-bold tracking-wider">
+                <i class="fa-solid fa-bolt text-yellow-300"></i> Platform Slogan
+            </span>
+            <h2 class="text-xl md:text-3xl font-extrabold tracking-tight leading-tight">
+                Voice agents automate calls that should not need a human. Comms AI compounds the value of calls that still do.
+            </h2>
+            <p class="text-sm md:text-base text-indigo-100 font-medium">
+                Comms AI turns every human-led client call into CRM-ready notes, tasks, follow-ups, and customer memory.
+            </p>
+            <div class="flex flex-wrap gap-3 pt-2">
+                <a href="/process" class="px-5 py-2.5 rounded-lg text-xs font-semibold bg-white text-violet-700 hover:bg-gray-50 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center gap-1.5 shadow-md shadow-violet-800/20">
+                    <i class="fa-solid fa-circle-plus"></i> Process New Call
+                </a>
+                <a href="/history" class="px-5 py-2.5 rounded-lg text-xs font-semibold bg-violet-500/30 text-white hover:bg-violet-500/40 border border-violet-400/20 transition-all flex items-center gap-1.5">
+                    <i class="fa-solid fa-clock-rotate-left"></i> View Customer Memory
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Dashboard Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Calls Processed -->
+        <div class="stat-card hover:scale-[1.01] transition-transform">
+            <div class="w-10 h-10 rounded-xl bg-violet-50 text-violet-500 dark:bg-violet-950/40 dark:text-violet-400 flex items-center justify-center text-base">
+                <i class="fa-solid fa-phone"></i>
+            </div>
+            <div>
+                <span class="block text-xs font-bold text-gray-400 uppercase tracking-wider">Processed Calls</span>
+                <span id="home-stat-calls" class="text-2xl font-bold text-gray-900">0</span>
+            </div>
+        </div>
+
+        <!-- High Urgency Alerts -->
+        <div class="stat-card hover:scale-[1.01] transition-transform">
+            <div class="w-10 h-10 rounded-xl bg-red-50 text-red-500 dark:bg-red-950/40 dark:text-red-400 flex items-center justify-center text-base">
+                <i class="fa-solid fa-fire"></i>
+            </div>
+            <div>
+                <span class="block text-xs font-bold text-gray-400 uppercase tracking-wider">High Urgency Alerts</span>
+                <span id="home-stat-urgent" class="text-2xl font-bold text-red-600">0</span>
+            </div>
+        </div>
+
+        <!-- CRM Action Items -->
+        <div class="stat-card hover:scale-[1.01] transition-transform">
+            <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-500 dark:bg-emerald-950/40 dark:text-emerald-400 flex items-center justify-center text-base">
+                <i class="fa-solid fa-clipboard-check"></i>
+            </div>
+            <div>
+                <span class="block text-xs font-bold text-gray-400 uppercase tracking-wider">Total Actions Generated</span>
+                <span id="home-stat-tasks" class="text-2xl font-bold text-emerald-600">0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Left: Recent Memory Timeline -->
+        <div class="lg:col-span-2 space-y-4">
+            <h3 class="text-sm font-bold text-gray-800 uppercase tracking-wider flex items-center gap-2">
+                <i class="fa-regular fa-clock text-violet-500"></i> Recent Call Memories
+            </h3>
+            
+            <div id="home-recent-feed" class="space-y-3">
+                <!-- Loaded Dynamically -->
+                <div class="text-center py-8 text-gray-400 text-xs">Loading feed...</div>
+            </div>
+
+            <!-- Explore Link -->
+            <div class="text-right">
+                <a href="/history" class="text-xs font-semibold text-violet-600 hover:text-violet-800 transition-colors flex items-center justify-end gap-1">
+                    See All Customer Timeline Logs <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- Right: Business Info & Quick Presets -->
+        <div class="space-y-4">
+            <h3 class="text-sm font-bold text-gray-800 uppercase tracking-wider flex items-center gap-2">
+                <i class="fa-solid fa-rocket text-violet-500"></i> Business Context
+            </h3>
+
+            <div class="card p-6 space-y-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-violet-100 text-violet-600 font-bold flex items-center justify-center">
+                        CO
+                    </div>
+                    <div>
+                        <h4 class="text-xs font-bold text-gray-900">Co-Founder Demo</h4>
+                        <p class="text-[10px] text-gray-400 font-medium">Target Market: United States</p>
+                    </div>
+                </div>
+
+                <div class="pt-2 border-t border-gray-100 space-y-3">
+                    <div class="text-[11px] text-gray-500 leading-relaxed">
+                        Every business call processed automatically generates structured CRM notes, email/SMS/WhatsApp follow-ups, and calendar action logs.
+                    </div>
+                    
+                    <div class="p-3 bg-gray-50 rounded-xl space-y-1.5">
+                        <div class="text-[10px] font-bold text-violet-600 uppercase tracking-wider flex items-center gap-1">
+                            <i class="fa-solid fa-circle-nodes"></i> Active Integrations
+                        </div>
+                        <div class="flex flex-wrap gap-2 pt-1 text-[10px] font-semibold text-gray-600">
+                            <span class="px-2 py-0.5 bg-white border border-gray-200 rounded-md flex items-center gap-1">
+                                <i class="fa-brands fa-google text-red-500"></i> Sheets
+                            </span>
+                            <span class="px-2 py-0.5 bg-white border border-gray-200 rounded-md flex items-center gap-1">
+                                <i class="fa-solid fa-database text-green-500"></i> Supabase
+                            </span>
+                            <span class="px-2 py-0.5 bg-white border border-gray-200 rounded-md flex items-center gap-1">
+                                <i class="fa-solid fa-comments text-blue-500"></i> Twilio
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

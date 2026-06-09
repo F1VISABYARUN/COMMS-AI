@@ -238,6 +238,10 @@ const SAMPLE_TRANSCRIPTS: { [key: string]: any } = {
 // ============================================================
 
 app.get('/', (req, res) => {
+  res.render('home.html');
+});
+
+app.get('/process', (req, res) => {
   res.render('upload.html');
 });
 
@@ -250,6 +254,50 @@ app.get('/history', (req, res) => {
 });
 
 // ============================================================
+//  API: DASHBOARD STATS
+// ============================================================
+
+app.get('/api/dashboard-stats', async (req, res) => {
+  try {
+    const { data: recordings, error } = await supabase
+      .from('recordings')
+      .select('*')
+      .order('timestamp', { ascending: false });
+
+    if (error) {
+      console.error('[ERR] Failed to fetch dashboard stats from Supabase:', error);
+      res.status(500).json({ error: 'Database error' });
+      return;
+    }
+
+    const totalCalls = recordings?.length || 0;
+    let urgentCalls = 0;
+    let totalTasks = 0;
+
+    recordings?.forEach(r => {
+      if (r.result) {
+        if (r.result.urgency === 'high') {
+          urgentCalls++;
+        }
+        if (r.result.tasks) {
+          totalTasks += r.result.tasks.length;
+        }
+      }
+    });
+
+    res.json({
+      totalCalls,
+      urgentCalls,
+      totalTasks,
+      recentCalls: recordings?.slice(0, 3) || []
+    });
+  } catch (err) {
+    console.error('[ERR] Exception in dashboard stats:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ============================================================
 //  EXISTING API ROUTES
 // ============================================================
 
@@ -259,69 +307,98 @@ app.get('/api/samples', (req, res) => {
 
 app.post('/api/process', async (req, res) => {
   const data = req.body || {};
-  const text = (data.text || "").trim();
   const industry = (data.industry || "general").toLowerCase();
+  const callId = randomUUID();
+  let processedRecord: any = null;
 
-  // AI Sim logic: If text matches a sample, return it. Otherwise, construct a custom result dynamically
-  let matchedSample: any = null;
-  for (const k of Object.keys(SAMPLE_TRANSCRIPTS)) {
-    const sample = SAMPLE_TRANSCRIPTS[k];
-    if (sample.text.substring(0, 30) === text.substring(0, 30) || text.substring(0, 30) === sample.text.substring(0, 30)) {
-      matchedSample = sample;
-      break;
+  if (data.audio) {
+    console.log(`[AI] Processing frontend audio upload (${data.fileName || 'audio file'})...`);
+    try {
+      const audioBuffer = Buffer.from(data.audio, 'base64');
+      const aiResult = await processCallAudioWithGemini(audioBuffer, "Manual Upload");
+
+      if (aiResult) {
+        processedRecord = {
+          id: callId,
+          title: aiResult.caller_name && aiResult.caller_name !== 'Unknown Caller' 
+            ? `Call with ${aiResult.caller_name}` 
+            : `Manual Upload: ${data.fileName || 'Audio Call'}`,
+          industry: industry,
+          source: 'manual',
+          caller: aiResult.caller_name || 'Unknown Caller',
+          timestamp: Date.now(),
+          transcript: aiResult.transcript || '[Audio transcription unavailable]',
+          result: aiResult
+        };
+      }
+    } catch (err) {
+      console.error('[ERR] Failed to process uploaded audio with Gemini:', err);
     }
   }
 
-  let result: any;
-  if (matchedSample) {
-    result = { ...matchedSample.mock_result };
-  } else {
-    // Create a dynamic mock output for custom text
-    let namePlaceholder = "Customer";
-    const words = text.split(/\s+/);
-    for (let i = 0; i < words.length; i++) {
-      const word = words[i];
-      // Basic heuristic for capitalised names
-      if (word.length > 2 && word[0] === word[0].toUpperCase() && !["Hello", "I'm", "This", "They", "What", "When", "Call", "Client", "We", "The"].includes(word)) {
-        namePlaceholder = word;
-        if (i + 1 < words.length && words[i + 1][0] === words[i + 1][0].toUpperCase() && !["I", "A", "To", "On"].includes(words[i + 1])) {
-          namePlaceholder += ` ${words[i + 1]}`;
-        }
+  // Fallback to text processing if audio was not processed or not provided
+  if (!processedRecord) {
+    const text = (data.text || "").trim();
+    // AI Sim logic: If text matches a sample, return it. Otherwise, construct a custom result dynamically
+    let matchedSample: any = null;
+    for (const k of Object.keys(SAMPLE_TRANSCRIPTS)) {
+      const sample = SAMPLE_TRANSCRIPTS[k];
+      if (sample.text.substring(0, 30) === text.substring(0, 30) || text.substring(0, 30) === sample.text.substring(0, 30)) {
+        matchedSample = sample;
         break;
       }
     }
 
-    result = {
-      "summary": `Custom call transcript processed for client in the ${industry} sector. The customer discussed account details and requested follow-up actions regarding their current service requirements.`,
-      "caller_name": namePlaceholder,
-      "policy_type": `General ${industry.charAt(0).toUpperCase() + industry.slice(1)} Account`,
-      "urgency": (text.toLowerCase().includes("urgent") || text.toLowerCase().includes("emergency")) ? "high" : "medium",
-      "intent": "Service inquiry and information update",
-      "objections": [(text.toLowerCase().includes("cost") || text.toLowerCase().includes("price") || text.toLowerCase().includes("fee")) ? "Pricing concern" : "General review request"],
-      "missing_info": ["Verification of account details"],
-      "tasks": [
-        { "title": `Follow up with ${namePlaceholder} regarding their custom query`, "due": "Friday", "priority": "high" },
-        { "title": "Log call summary and details in client account", "due": "Tomorrow", "priority": "medium" }
-      ],
-      "follow_ups": {
-        "whatsapp": `Hi ${namePlaceholder}, thank you for speaking with me today. I am following up on your request and will have updates for you shortly. - Ops Support`,
-        "email": `Subject: Following up on our discussion - ${industry.charAt(0).toUpperCase() + industry.slice(1)} Services\n\nDear ${namePlaceholder},\n\nThank you for your time on the phone today.\n\nI am compiling the information you requested and will get back to you by tomorrow with the next steps.\n\nBest regards,\nCustomer Operations`,
-        "sms": `Hi ${namePlaceholder}, thanks for your call. I am checking on the details we discussed and will follow up shortly. Ops Team.`
+    let result: any;
+    if (matchedSample) {
+      result = { ...matchedSample.mock_result };
+    } else {
+      // Create a dynamic mock output for custom text
+      let namePlaceholder = "Customer";
+      const words = text.split(/\s+/);
+      for (let i = 0; i < words.length; i++) {
+        const word = words[i];
+        // Basic heuristic for capitalised names
+        if (word.length > 2 && word[0] === word[0].toUpperCase() && !["Hello", "I'm", "This", "They", "What", "When", "Call", "Client", "We", "The"].includes(word)) {
+          namePlaceholder = word;
+          if (i + 1 < words.length && words[i + 1][0] === words[i + 1][0].toUpperCase() && !["I", "A", "To", "On"].includes(words[i + 1])) {
+            namePlaceholder += ` ${words[i + 1]}`;
+          }
+          break;
+        }
       }
+
+      result = {
+        "summary": `Custom call transcript processed for client in the ${industry} sector. The customer discussed account details and requested follow-up actions regarding their current service requirements.`,
+        "caller_name": namePlaceholder,
+        "policy_type": `General ${industry.charAt(0).toUpperCase() + industry.slice(1)} Account`,
+        "urgency": (text.toLowerCase().includes("urgent") || text.toLowerCase().includes("emergency")) ? "high" : "medium",
+        "intent": "Service inquiry and information update",
+        "objections": [(text.toLowerCase().includes("cost") || text.toLowerCase().includes("price") || text.toLowerCase().includes("fee")) ? "Pricing concern" : "General review request"],
+        "missing_info": ["Verification of account details"],
+        "tasks": [
+          { "title": `Follow up with ${namePlaceholder} regarding their custom query`, "due": "Friday", "priority": "high" },
+          { "title": "Log call summary and details in client account", "due": "Tomorrow", "priority": "medium" }
+        ],
+        "follow_ups": {
+          "whatsapp": `Hi ${namePlaceholder}, thank you for speaking with me today. I am following up on your request and will have updates for you shortly. - Ops Support`,
+          "email": `Subject: Following up on our discussion - ${industry.charAt(0).toUpperCase() + industry.slice(1)} Services\n\nDear ${namePlaceholder},\n\nThank you for your time on the phone today.\n\nI am compiling the information you requested and will get back to you by tomorrow with the next steps.\n\nBest regards,\nCustomer Operations`,
+          "sms": `Hi ${namePlaceholder}, thanks for your call. I am checking on the details we discussed and will follow up shortly. Ops Team.`
+        }
+      };
+    }
+
+    processedRecord = {
+      id: callId,
+      title: matchedSample ? matchedSample.title : `Call with ${result.caller_name}`,
+      industry: industry,
+      source: 'manual',
+      caller: result.caller_name,
+      timestamp: Date.now(),
+      transcript: text,
+      result: result
     };
   }
-
-  const callId = randomUUID();
-  const processedRecord = {
-    id: callId,
-    title: matchedSample ? matchedSample.title : `Call with ${result.caller_name}`,
-    industry: industry,
-    source: 'manual',
-    caller: result.caller_name,
-    timestamp: Date.now(),
-    transcript: text,
-    result: result
-  };
 
   try {
     const { error } = await supabase.from('recordings').insert([processedRecord]);
@@ -734,6 +811,96 @@ app.get('/api/recordings', async (req, res) => {
     res.json(data || []);
   } catch (err) {
     console.error('[ERR] Exception fetching recordings:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ============================================================
+//  API: GET SINGLE RECORDING
+// ============================================================
+
+app.get('/api/recordings/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const { data, error } = await supabase
+      .from('recordings')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+      
+    if (error) {
+      console.error(`[ERR] Failed to fetch recording ${id} from Supabase:`, error);
+      res.status(500).json({ error: 'Database error' });
+      return;
+    }
+    
+    if (!data) {
+      res.status(404).json({ error: 'Recording not found' });
+      return;
+    }
+    
+    res.json(data);
+  } catch (err) {
+    console.error(`[ERR] Exception fetching recording ${id}:`, err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ============================================================
+//  API: UPDATE RECORDING
+// ============================================================
+
+app.post('/api/recordings/:id', async (req, res) => {
+  const { id } = req.params;
+  const { title, industry, caller, result, transcript } = req.body;
+
+  try {
+    // 1. Update in Supabase
+    const { data, error } = await supabase
+      .from('recordings')
+      .update({ title, industry, caller, result, transcript })
+      .eq('id', id)
+      .select()
+      .maybeSingle();
+
+    if (error) {
+      console.error(`[ERR] Failed to update recording ${id} in Supabase:`, error);
+      res.status(500).json({ error: 'Failed to update database' });
+      return;
+    }
+
+    if (!data) {
+      res.status(404).json({ error: 'Recording not found to update' });
+      return;
+    }
+
+    // 2. If it's a manual call, push it to Google Sheets
+    if (result && data.source === 'manual') {
+      const today = new Date().toISOString().split('T')[0];
+      const summary = result.summary || "";
+      const actionItems = result.tasks ? result.tasks.map((t: any) => t.title).join(', ') : "";
+      const followUpNeeded = result.follow_up_needed || "No";
+      const reminderDate = result.reminder_date || "";
+      const callerEmail = result.caller_email || "";
+
+      const rowData = [
+        today,
+        caller || data.caller,
+        summary,
+        actionItems,
+        followUpNeeded,
+        reminderDate,
+        followUpNeeded.toLowerCase() === "yes" ? "Pending" : "N/A",
+        callerEmail
+      ];
+      
+      const SHEET_ID = "1GEP1JtBcybnpVfDmeEr58zEhKMM1CgvfQP15wgljBJs";
+      await appendCallData(SHEET_ID, rowData);
+    }
+
+    res.json({ success: true, data });
+  } catch (err) {
+    console.error(`[ERR] Exception updating recording ${id}:`, err);
     res.status(500).json({ error: 'Server error' });
   }
 });

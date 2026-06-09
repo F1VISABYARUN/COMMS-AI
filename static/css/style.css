@@ -358,3 +358,98 @@ body {
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
+
+/* ============================================
+   Comms AI — Dark Theme Override System
+   ============================================ */
+body.dark-mode {
+    --bg: #090d16;
+    --white: #111827;
+    --hover: #1f2937;
+    --border: #1f2937;
+    --border-dark: #374151;
+    --text: #f9fafb;
+    --text-sub: #d1d5db;
+    --text-muted: #6b7280;
+
+    --accent: #8b5cf6;
+    --accent-dark: #7c3aed;
+    --accent-bg: #2e1d52;
+    --accent-border: #4c2f8c;
+
+    --red: #f87171;
+    --red-bg: #2d1818;
+    --red-border: #4a1d1d;
+    --amber: #fbbf24;
+    --amber-bg: #2d2315;
+    --amber-border: #4a341a;
+    --green: #34d399;
+    --green-bg: #142a22;
+    --green-border: #1a4d3b;
+}
+
+/* Transitions for smooth theme switching */
+body, aside, main, header, .card, .btn-primary, .btn-secondary, .form-input, .nav-link, .preset-card, .task-row, .history-card, .stat-card, h1, h2, h3, h4, p, span, i, label {
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
+}
+
+/* Tailwind Overrides when body is in dark mode */
+body.dark-mode {
+    background-color: var(--bg) !important;
+    color: var(--text) !important;
+}
+
+body.dark-mode main {
+    background-color: var(--bg) !important;
+}
+
+body.dark-mode .bg-white {
+    background-color: var(--white) !important;
+}
+
+body.dark-mode .bg-\[\#f7f8fa\] {
+    background-color: var(--bg) !important;
+}
+
+body.dark-mode .bg-gray-50 {
+    background-color: var(--hover) !important;
+}
+
+body.dark-mode .bg-gray-50\/50 {
+    background-color: rgba(31, 41, 55, 0.4) !important;
+}
+
+body.dark-mode .text-gray-900,
+body.dark-mode .text-gray-800 {
+    color: var(--text) !important;
+}
+
+body.dark-mode .text-gray-700,
+body.dark-mode .text-gray-600 {
+    color: var(--text-sub) !important;
+}
+
+body.dark-mode .text-gray-500,
+body.dark-mode .text-gray-400 {
+    color: var(--text-muted) !important;
+}
+
+body.dark-mode .text-gray-300 {
+    color: #4b5563 !important;
+}
+
+body.dark-mode .border-gray-100,
+body.dark-mode .border-gray-200,
+body.dark-mode .border-gray-300 {
+    border-color: var(--border) !important;
+}
+
+body.dark-mode select.form-input {
+    background-color: var(--white) !important;
+    color: var(--text) !important;
+}
+
+body.dark-mode select.form-input option {
+    background-color: var(--white);
+    color: var(--text);
+}

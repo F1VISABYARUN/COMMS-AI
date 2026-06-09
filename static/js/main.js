@@ -65,6 +65,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const audioInput = document.getElementById("audio-file");
 
         let selectedIndustry = "insurance";
+        let selectedAudioFile = null;
         if (!textInput || !processBtn) return;
 
         const setIndustryActive = (industry) => {
@@ -90,6 +91,8 @@ document.addEventListener("DOMContentLoaded", () => {
         // Load demo presets
         sampleButtons.forEach(btn => {
             btn.addEventListener("click", async () => {
+                selectedAudioFile = null;
+                textInput.disabled = false;
                 const sampleKey = btn.getAttribute("data-sample");
                 try {
                     const res = await fetch("/api/samples");
@@ -113,7 +116,7 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         });
 
-        // Processing animation
+        // Processing animation for text
         const runProcessing = async (text, industry) => {
             const loader = document.getElementById("processing-loader");
             const statusLabel = document.getElementById("loader-status");
@@ -157,41 +160,137 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         };
 
-        // File upload
+        // Processing animation for audio
+        const runAudioProcessing = async (file, industry) => {
+            const loader = document.getElementById("processing-loader");
+            const statusLabel = document.getElementById("loader-status");
+            if (!loader || !statusLabel) return;
+
+            loader.classList.remove("hidden");
+            loader.classList.add("flex");
+
+            statusLabel.textContent = "Reading audio file...";
+            
+            // Read file as base64
+            const reader = new FileReader();
+            reader.onload = async () => {
+                const base64Data = reader.result.split(',')[1];
+                
+                const steps = [
+                    "Uploading audio stream...",
+                    "Gemini processing audio...",
+                    "Transcribing conversation...",
+                    "Extracting actions and intent...",
+                    "Generating follow-up draft..."
+                ];
+
+                for (const step of steps) {
+                    statusLabel.textContent = step;
+                    await new Promise(r => setTimeout(r, 600));
+                }
+
+                try {
+                    const response = await fetch("/api/process", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ 
+                            audio: base64Data, 
+                            fileName: file.name,
+                            mimeType: file.type,
+                            industry 
+                        })
+                    });
+
+                    if (response.ok) {
+                        const newCall = await response.json();
+                        const records = getRecords();
+                        records.unshift(newCall);
+                        saveRecords(records);
+                        window.location.href = `/results/${newCall.id}`;
+                    } else {
+                        const errData = await response.json();
+                        alert("Processing failed: " + (errData.error || "Unknown server error"));
+                        loader.classList.add("hidden");
+                        loader.classList.remove("flex");
+                    }
+                } catch (err) {
+                    console.error("Audio processing failed", err);
+                    loader.classList.add("hidden");
+                    loader.classList.remove("flex");
+                    alert("Processing failed. Please try again.");
+                }
+            };
+
+            reader.onerror = () => {
+                alert("Failed to read audio file.");
+                loader.classList.add("hidden");
+                loader.classList.remove("flex");
+            };
+
+            reader.readAsDataURL(file);
+        };
+
+        // File upload event
         if (audioInput) {
             audioInput.addEventListener("change", () => {
                 if (audioInput.files && audioInput.files[0]) {
-                    textInput.value = `[Uploaded audio: ${audioInput.files[0].name}]\n\nProcessing speech-to-text...`;
-                    textInput.focus();
+                    selectedAudioFile = audioInput.files[0];
+                    textInput.value = `[Uploaded audio: ${selectedAudioFile.name}]\n\nReady to process audio file...`;
+                    textInput.disabled = true;
                 }
             });
         }
 
-        processBtn.addEventListener("click", () => {
-            const transcript = textInput.value.trim();
-            if (!transcript) {
-                alert("Please paste a transcript or select a demo preset first.");
-                return;
+        // Text area input change
+        textInput.addEventListener("input", () => {
+            if (textInput.value === "") {
+                selectedAudioFile = null;
+                textInput.disabled = false;
             }
-            runProcessing(transcript, selectedIndustry);
+        });
+
+        // Click Process
+        processBtn.addEventListener("click", () => {
+            if (selectedAudioFile) {
+                runAudioProcessing(selectedAudioFile, selectedIndustry);
+            } else {
+                const transcript = textInput.value.trim();
+                if (!transcript) {
+                    alert("Please paste a transcript or select a demo preset first.");
+                    return;
+                }
+                runProcessing(transcript, selectedIndustry);
+            }
         });
     };
 
     // ---- SCREEN 2: RESULTS PAGE ----
-    const initResultsPage = () => {
+    const initResultsPage = async () => {
         if (typeof window.CURRENT_CALL_ID === 'undefined') return;
 
         const callId = window.CURRENT_CALL_ID;
-        const records = getRecords();
-        const idx = records.findIndex(r => r.id === callId);
+        let call = null;
 
-        if (idx === -1) {
+        try {
+            const response = await fetch(`/api/recordings/${callId}`);
+            if (response.ok) {
+                call = await response.json();
+            }
+        } catch (e) {
+            console.warn("Could not fetch recording from server, trying local storage:", e);
+        }
+
+        if (!call) {
+            const records = getRecords();
+            call = records.find(r => r.id === callId);
+        }
+
+        if (!call || !call.result) {
             alert("Record not found.");
             window.location.href = "/";
             return;
         }
 
-        const call = records[idx];
         const res = call.result;
 
         // Header
@@ -529,7 +628,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         // Save
-        document.getElementById("save-approve-btn").addEventListener("click", () => {
+        document.getElementById("save-approve-btn").addEventListener("click", async () => {
             res.summary = document.getElementById("call-summary").value.trim();
             res.caller_name = document.getElementById("field-caller-name").value.trim();
             res.policy_type = document.getElementById("field-policy-type").value.trim();
@@ -539,12 +638,37 @@ document.addEventListener("DOMContentLoaded", () => {
             res.objections = Array.from(document.querySelectorAll(".objection-item-input")).map(i => i.value.trim());
             res.missing_info = Array.from(document.querySelectorAll(".missing-item-input")).map(i => i.value.trim());
 
-            records[idx] = call;
+            call.caller = res.caller_name;
+            call.title = `Call with ${res.caller_name}`;
+
+            const records = getRecords();
+            const idx = records.findIndex(r => r.id === callId);
+            if (idx !== -1) {
+                records[idx] = call;
+            } else {
+                records.unshift(call);
+            }
             saveRecords(records);
 
             const saveBtn = document.getElementById("save-approve-btn");
+            const originalHTML = saveBtn.innerHTML;
             saveBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Saving...`;
-            setTimeout(() => { window.location.href = "/history"; }, 600);
+            saveBtn.disabled = true;
+
+            try {
+                const response = await fetch(`/api/recordings/${callId}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(call)
+                });
+                if (!response.ok) {
+                    console.error("Failed to update database.");
+                }
+            } catch (err) {
+                console.error("Network error updating database:", err);
+            }
+
+            window.location.href = "/history";
         });
 
     };
@@ -665,8 +789,147 @@ document.addEventListener("DOMContentLoaded", () => {
         renderHistory();
     };
 
+    // ---- SCREEN 0: HOMEPAGE (DASHBOARD) ----
+    const initHomePage = async () => {
+        const homeCalls = document.getElementById("home-stat-calls");
+        const homeUrgent = document.getElementById("home-stat-urgent");
+        const homeTasks = document.getElementById("home-stat-tasks");
+        const recentFeed = document.getElementById("home-recent-feed");
+
+        if (!homeCalls) return; // Not on homepage
+
+        try {
+            const res = await fetch('/api/dashboard-stats');
+            if (!res.ok) throw new Error("Failed to load dashboard statistics");
+            const data = await res.json();
+
+            // Animate counting numbers
+            const animateValue = (el, start, end, duration) => {
+                if (start === end) {
+                    el.textContent = end;
+                    return;
+                }
+                let current = start;
+                const range = end - start;
+                const increment = end > start ? 1 : -1;
+                const stepTime = Math.abs(Math.floor(duration / range));
+                const timer = setInterval(() => {
+                    current += increment;
+                    el.textContent = current;
+                    if (current === end) {
+                        clearInterval(timer);
+                    }
+                }, stepTime || 20);
+            };
+
+            animateValue(homeCalls, 0, data.totalCalls, 400);
+            animateValue(homeUrgent, 0, data.urgentCalls, 400);
+            animateValue(homeTasks, 0, data.totalTasks, 400);
+
+            // Populate Recent feed
+            if (!data.recentCalls || data.recentCalls.length === 0) {
+                recentFeed.innerHTML = `
+                    <div class="card p-6 text-center text-gray-400 text-xs flex flex-col items-center justify-center py-10 space-y-2">
+                        <i class="fa-solid fa-folder-open text-lg"></i>
+                        <span>No client calls processed yet. Click "Process Call" to begin.</span>
+                    </div>
+                `;
+                return;
+            }
+
+            recentFeed.innerHTML = "";
+            data.recentCalls.forEach(call => {
+                const res = call.result;
+                if (!res) return;
+                const div = document.createElement("div");
+
+                const urgencyBorder = res.urgency === "high" ? "border-l-red-500"
+                    : res.urgency === "medium" ? "border-l-amber-400"
+                    : "border-l-emerald-400";
+
+                const urgencyBadge = res.urgency === "high"
+                    ? "bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400"
+                    : res.urgency === "medium"
+                    ? "bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400"
+                    : "bg-gray-50 text-gray-500 dark:bg-gray-800 dark:text-gray-400";
+
+                div.className = `history-card ${urgencyBorder} border-l-[3px]`;
+                div.innerHTML = `
+                    <div class="space-y-1.5 flex-grow max-w-2xl">
+                        <div class="flex items-center gap-2">
+                            <span class="badge badge-accent uppercase text-[9px]">${call.industry}</span>
+                            <span class="badge ${urgencyBadge} uppercase text-[9px]">${res.urgency}</span>
+                            <span class="text-[10px] text-gray-400 font-medium">${formatTimestamp(call.timestamp)}</span>
+                        </div>
+                        <h4 class="font-semibold text-gray-900 text-sm tracking-tight">Call with ${call.caller}</h4>
+                        <p class="text-xs text-gray-500 line-clamp-2 leading-relaxed">${res.summary}</p>
+                    </div>
+
+                    <div class="flex items-center gap-4 flex-shrink-0 self-end md:self-auto">
+                        <div class="text-right hidden sm:block">
+                            <span class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Actions</span>
+                            <span class="text-xs font-semibold text-gray-800">${res.tasks ? res.tasks.length : 0}</span>
+                        </div>
+                        <div class="w-7 h-7 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center text-gray-400 dark:bg-gray-800 dark:border-gray-700">
+                            <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                        </div>
+                    </div>
+                `;
+
+                div.addEventListener("click", () => {
+                    window.location.href = `/results/${call.id}`;
+                });
+
+                recentFeed.appendChild(div);
+            });
+
+        } catch (err) {
+            console.error("Dashboard stats loading failed", err);
+            recentFeed.innerHTML = `<div class="text-center py-6 text-red-500 text-xs font-semibold">Failed to load recent memories.</div>`;
+        }
+    };
+
+    // ---- DARK MODE TOGGLE ----
+    const initThemeToggle = () => {
+        const toggleBtn = document.getElementById("theme-toggle-btn");
+        const toggleIcon = document.getElementById("theme-toggle-icon");
+        const toggleText = document.getElementById("theme-toggle-text");
+
+        if (!toggleBtn) return;
+
+        const updateThemeUI = () => {
+            const isDark = document.body.classList.contains("dark-mode");
+            if (isDark) {
+                if (toggleIcon) {
+                    toggleIcon.className = "fa-solid fa-sun text-amber-500";
+                }
+                if (toggleText) {
+                    toggleText.textContent = "Light Mode";
+                }
+            } else {
+                if (toggleIcon) {
+                    toggleIcon.className = "fa-solid fa-moon text-violet-500";
+                }
+                if (toggleText) {
+                    toggleText.textContent = "Dark Mode";
+                }
+            }
+        };
+
+        // Initialize UI based on current class
+        updateThemeUI();
+
+        toggleBtn.addEventListener("click", () => {
+            const isDark = document.body.classList.toggle("dark-mode");
+            localStorage.setItem("theme", isDark ? "dark" : "light");
+            updateThemeUI();
+        });
+    };
+
     // ---- INIT ----
+    initHomePage();
     initUploadPage();
     initResultsPage();
     initHistoryPage();
+    initThemeToggle();
 });
