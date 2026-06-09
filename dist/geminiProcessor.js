@@ -88,9 +88,11 @@ async function processCallAudioWithGemini(audioBuffer, callerId) {
         const genAI = new generative_ai_1.GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
         const audioBase64 = audioBuffer.toString('base64');
+        const todayStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
         const prompt = `
 You are an AI assistant. You will be given an audio recording of a phone call.
 Caller ID: ${callerId}
+Today's date is: ${todayStr} (use this as reference to calculate relative dates like tomorrow, next week, Friday morning, etc.)
 
 Tasks:
 1. First, transcribe the audio recording into text.
@@ -112,7 +114,7 @@ Your JSON response MUST have ALL of the following exact keys:
     - "sms": A short SMS follow-up message.
 - "action_items": A single comma-separated string listing the main action items.
 - "follow_up_needed": Strictly "Yes" or "No".
-- "reminder_date": If follow up is needed, a date in YYYY-MM-DD format. Otherwise empty string "".
+- "reminder_date": If follow up is needed, provide a date in YYYY-MM-DD format (e.g. if the user requests a callback tomorrow or Friday, calculate the exact date based on Today's date ${todayStr}). Otherwise empty string "".
 - "caller_email": If the caller mentions their email, extract it. Otherwise empty string "".
 
 Respond ONLY with valid JSON. Do not include markdown formatting or backticks.
@@ -167,9 +169,11 @@ async function processCallTranscriptWithGemini(transcript, callerId) {
     try {
         const genAI = new generative_ai_1.GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const todayStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
         const prompt = `
 You are an AI assistant analyzing a phone call transcript.
 Caller ID: ${callerId}
+Today's date is: ${todayStr} (use this as reference to calculate relative dates like tomorrow, next week, Friday morning, etc.)
 
 Transcript:
 ${transcript}
@@ -179,7 +183,7 @@ Analyze the transcript and provide a JSON response with the following exact keys
 - "summary": A brief 2-3 sentence summary of the call.
 - "action_items": A single string listing the main action items, separated by commas.
 - "follow_up_needed": A string, strictly "Yes" or "No".
-- "reminder_date": If follow up is needed, provide a date in YYYY-MM-DD format (e.g., if they say "tomorrow", calculate based on context, or just return "YYYY-MM-DD" relative to today. Since you don't know today's date, output a realistic target date or just "Next Week").
+- "reminder_date": If follow up is needed, provide a date in YYYY-MM-DD format (e.g., if they say "tomorrow" or "next Friday", calculate the exact target date based on Today's date ${todayStr}). Otherwise empty string "".
 - "caller_email": If the caller mentions their email address in the transcript (e.g., "my email is me@example.com"), extract it. Otherwise, return an empty string "".
 
 Respond ONLY with valid JSON. Do not include markdown formatting or backticks.

@@ -9,6 +9,7 @@ const twilio_1 = __importDefault(require("twilio"));
 const node_cron_1 = __importDefault(require("node-cron"));
 const nodemailer_1 = __importDefault(require("nodemailer"));
 const googleSheetsManager_1 = require("./googleSheetsManager");
+const supabaseClient_1 = require("./supabaseClient");
 const SHEET_ID = "1GEP1JtBcybnpVfDmeEr58zEhKMM1CgvfQP15wgljBJs";
 // --- Twilio Settings ---
 const TWILIO_SID = process.env.TWILIO_ACCOUNT_SID;
@@ -88,36 +89,60 @@ async function checkAndSendFollowups() {
     for (const item of pending) {
         const rowIndex = item.row_index;
         const data = item.data;
-        // Headers: Date, Caller ID, Summary, Action Items, Follow-up Needed, Reminder Date, Status, Email
+        // Headers: Date, Caller ID, Summary, Action Items, Follow-up Needed, Reminder Date, Status, Email, Call ID
         const reminderDate = data['Reminder Date'] || '';
         const caller = data['Caller ID'] || 'Unknown';
         const summary = data['Summary'] || '';
         const actionItems = data['Action Items'] || '';
         const email = data['Email'] || '';
+        // Validate reminder date string. Must match YYYY-MM-DD
+        let targetDate = reminderDate.trim();
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (targetDate && !dateRegex.test(targetDate)) {
+            console.warn(`[WARN] Invalid reminder date format "${targetDate}" for row ${rowIndex}. Processing immediately.`);
+            targetDate = today;
+        }
         // Check if the reminder is due today or in the past
-        if (reminderDate && reminderDate <= today) {
-            console.log(`[!] Sending follow-up to ${caller} (Due: ${reminderDate})`);
+        if (targetDate && targetDate <= today) {
+            console.log(`[!] Sending follow-up to ${caller} (Due: ${targetDate})`);
             let smsSent = true;
             let emailSent = true;
             // 1. Dispatch SMS to the Caller/Customer via Twilio
             if (twilioClient && TWILIO_PHONE && caller !== 'Unknown' && !caller.includes('Unknown')) {
+                let targetPhone = caller.trim();
+                if (!targetPhone.startsWith('+')) {
+                    if (/^\d+$/.test(targetPhone)) {
+                        if (targetPhone.length === 10) {
+                            const myMobile = process.env.MY_MOBILE_NUMBER || '';
+                            if (myMobile.startsWith('+91')) {
+                                targetPhone = '+91' + targetPhone;
+                            }
+                            else {
+                                targetPhone = '+1' + targetPhone;
+                            }
+                        }
+                        else {
+                            targetPhone = '+' + targetPhone;
+                        }
+                    }
+                }
                 try {
                     const body = `Hi, following up on our previous call. Summary of discussed items: ${summary.substring(0, 100)}... Action items: ${actionItems.substring(0, 100)}... Let me know if you need anything else!`;
                     await twilioClient.messages.create({
                         body,
                         from: TWILIO_PHONE,
-                        to: caller
+                        to: targetPhone
                     });
-                    console.log(`[SMS] Follow-up SMS sent successfully to ${caller}`);
+                    console.log(`[SMS] Follow-up SMS sent successfully to ${targetPhone}`);
                 }
                 catch (error) {
-                    console.error(`[ERR] Failed to send follow-up SMS to ${caller}:`, error);
+                    console.error(`[ERR] Failed to send follow-up SMS to ${targetPhone}:`, error);
                     smsSent = false;
                 }
             }
             else {
                 console.warn(`[WARN] Twilio not configured or invalid caller phone (${caller}). Skipping SMS.`);
-                smsSent = false; // set to false if not configured to avoid false success reporting, or true if we want to bypass. Let's keep false.
+                smsSent = false;
             }
             // 2. Dispatch Email alert to the Customer (if email exists) or the Owner (as backup)
             const recipientEmail = email || MY_EMAIL;
@@ -129,10 +154,37 @@ async function checkAndSendFollowups() {
                 console.warn(`[WARN] No recipient email (no customer email and MY_EMAIL not set) or SMTP transporter not configured. Skipping Email.`);
                 emailSent = false;
             }
-            // 3. Mark as completed in Google Sheets if at least one notification was dispatched
+            // 3. Mark as completed in Google Sheets and Supabase if at least one notification was dispatched
             if (smsSent || emailSent) {
                 await (0, googleSheetsManager_1.markReminderCompleted)(SHEET_ID, rowIndex);
-                console.log(`[OK] Follow-up processed and marked as completed for row ${rowIndex}.`);
+                console.log(`[OK] Follow-up processed and marked as completed in Sheets for row ${rowIndex}.`);
+                // Sync follow-up status to Supabase using Call ID
+                const callId = data['Call ID'] || '';
+                if (callId) {
+                    try {
+                        const { data: record, error: fetchErr } = await supabaseClient_1.supabase
+                            .from('recordings')
+                            .select('result')
+                            .eq('id', callId)
+                            .maybeSingle();
+                        if (!fetchErr && record && record.result) {
+                            const updatedResult = { ...record.result, follow_up_status: 'Completed' };
+                            const { error: updateErr } = await supabaseClient_1.supabase
+                                .from('recordings')
+                                .update({ result: updatedResult })
+                                .eq('id', callId);
+                            if (updateErr) {
+                                console.error(`[ERR] Failed to update follow-up status in Supabase for call ${callId}:`, updateErr);
+                            }
+                            else {
+                                console.log(`[OK] Synced follow-up status to Completed in Supabase for call ${callId}`);
+                            }
+                        }
+                    }
+                    catch (dbErr) {
+                        console.error(`[ERR] Exception syncing Supabase follow-up status:`, dbErr);
+                    }
+                }
             }
         }
     }

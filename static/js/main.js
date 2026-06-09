@@ -333,6 +333,18 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("field-urgency").value = res.urgency;
         document.getElementById("field-intent").value = res.intent;
 
+        let reminderDateVal = "";
+        if (res.reminder_date) {
+            const match = res.reminder_date.match(/^\d{4}-\d{2}-\d{2}$/);
+            if (match) {
+                reminderDateVal = res.reminder_date;
+            }
+        }
+        document.getElementById("field-reminder-date").value = reminderDateVal;
+        
+        const followUpStatusVal = res.follow_up_status || (res.follow_up_needed === "Yes" ? "Pending" : "N/A");
+        document.getElementById("field-follow-up-status").value = followUpStatusVal;
+
         // Transcript toggle
         const transcriptToggle = document.getElementById("transcript-toggle-btn");
         const transcriptBody = document.getElementById("transcript-body");
@@ -634,6 +646,9 @@ document.addEventListener("DOMContentLoaded", () => {
             res.policy_type = document.getElementById("field-policy-type").value.trim();
             res.urgency = document.getElementById("field-urgency").value;
             res.intent = document.getElementById("field-intent").value.trim();
+            res.reminder_date = document.getElementById("field-reminder-date").value;
+            res.follow_up_status = document.getElementById("field-follow-up-status").value;
+            res.follow_up_needed = res.follow_up_status !== "N/A" ? "Yes" : "No";
             res.follow_ups[activeTab] = msgTextarea.value.trim();
             res.objections = Array.from(document.querySelectorAll(".objection-item-input")).map(i => i.value.trim());
             res.missing_info = Array.from(document.querySelectorAll(".missing-item-input")).map(i => i.value.trim());
@@ -727,18 +742,30 @@ document.addEventListener("DOMContentLoaded", () => {
                     : "border-l-emerald-400";
 
                 const urgencyBadge = res.urgency === "high"
-                    ? "bg-red-50 text-red-600"
+                    ? "bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400"
                     : res.urgency === "medium"
-                    ? "bg-amber-50 text-amber-600"
-                    : "bg-gray-50 text-gray-500";
+                    ? "bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400"
+                    : "bg-gray-50 text-gray-500 dark:bg-gray-800 dark:text-gray-400";
+
+                const followUpStatus = res.follow_up_status || (res.follow_up_needed === "Yes" ? "Pending" : "N/A");
+                let followUpBadge = "";
+                if (followUpStatus === "Completed") {
+                    followUpBadge = "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50";
+                } else if (followUpStatus === "Pending") {
+                    followUpBadge = "bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50";
+                } else {
+                    followUpBadge = "bg-gray-50 text-gray-500 dark:bg-gray-800 dark:text-gray-400 border border-gray-200 dark:border-gray-700";
+                }
+                const reminderStr = res.reminder_date ? ` • Reminder: ${res.reminder_date}` : '';
 
                 div.className = `history-card ${urgencyBorder} border-l-[3px]`;
                 div.innerHTML = `
                     <div class="space-y-1.5 flex-grow max-w-2xl">
-                        <div class="flex items-center gap-2">
+                        <div class="flex flex-wrap items-center gap-2">
                             <span class="badge badge-accent uppercase text-[9px]">${call.industry}</span>
                             <span class="badge ${urgencyBadge} uppercase text-[9px]">${res.urgency}</span>
-                            <span class="text-[10px] text-gray-400 font-medium">${formatTimestamp(call.timestamp)}</span>
+                            <span class="badge ${followUpBadge} uppercase text-[9px]">Follow-up: ${followUpStatus}</span>
+                            <span class="text-[10px] text-gray-400 font-medium">${formatTimestamp(call.timestamp)}${reminderStr}</span>
                         </div>
                         <h4 class="font-semibold text-gray-900 text-sm tracking-tight">Call with ${call.caller}</h4>
                         <p class="text-xs text-gray-500 line-clamp-2 leading-relaxed">${res.summary}</p>
@@ -749,11 +776,11 @@ document.addEventListener("DOMContentLoaded", () => {
                             <span class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tasks</span>
                             <span class="text-xs font-semibold text-gray-800">${res.tasks ? res.tasks.length : 0}</span>
                         </div>
-                        <div class="w-7 h-7 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center text-gray-400">
+                        <div class="w-7 h-7 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center text-gray-400 dark:bg-gray-800 dark:border-gray-700">
                             <i class="fa-solid fa-chevron-right text-[10px]"></i>
                         </div>
                     </div>
-                `;
+`;
 
                 div.addEventListener("click", () => {
                     window.location.href = `/results/${call.id}`;
@@ -853,13 +880,25 @@ document.addEventListener("DOMContentLoaded", () => {
                     ? "bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400"
                     : "bg-gray-50 text-gray-500 dark:bg-gray-800 dark:text-gray-400";
 
+                const followUpStatus = res.follow_up_status || (res.follow_up_needed === "Yes" ? "Pending" : "N/A");
+                let followUpBadge = "";
+                if (followUpStatus === "Completed") {
+                    followUpBadge = "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50";
+                } else if (followUpStatus === "Pending") {
+                    followUpBadge = "bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50";
+                } else {
+                    followUpBadge = "bg-gray-50 text-gray-500 dark:bg-gray-800 dark:text-gray-400 border border-gray-200 dark:border-gray-700";
+                }
+                const reminderStr = res.reminder_date ? ` • Reminder: ${res.reminder_date}` : '';
+
                 div.className = `history-card ${urgencyBorder} border-l-[3px]`;
                 div.innerHTML = `
                     <div class="space-y-1.5 flex-grow max-w-2xl">
-                        <div class="flex items-center gap-2">
+                        <div class="flex flex-wrap items-center gap-2">
                             <span class="badge badge-accent uppercase text-[9px]">${call.industry}</span>
                             <span class="badge ${urgencyBadge} uppercase text-[9px]">${res.urgency}</span>
-                            <span class="text-[10px] text-gray-400 font-medium">${formatTimestamp(call.timestamp)}</span>
+                            <span class="badge ${followUpBadge} uppercase text-[9px]">Follow-up: ${followUpStatus}</span>
+                            <span class="text-[10px] text-gray-400 font-medium">${formatTimestamp(call.timestamp)}${reminderStr}</span>
                         </div>
                         <h4 class="font-semibold text-gray-900 text-sm tracking-tight">Call with ${call.caller}</h4>
                         <p class="text-xs text-gray-500 line-clamp-2 leading-relaxed">${res.summary}</p>

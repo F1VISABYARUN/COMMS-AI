@@ -691,6 +691,10 @@ app.post('/twilio/recording-status', async (req, res) => {
                 record.result = aiResult;
             }
             if (aiResult) {
+                // Initialize follow up status in DB
+                const followUpStatus = (aiResult.follow_up_needed || "No").toLowerCase() === "yes" ? "Pending" : "N/A";
+                aiResult.follow_up_status = followUpStatus;
+                record.result = aiResult; // Ensure it updates in record object
                 // 4. Prepare data for Google Sheets
                 const today = new Date().toISOString().split('T')[0];
                 const summary = aiResult.summary || "";
@@ -705,8 +709,9 @@ app.post('/twilio/recording-status', async (req, res) => {
                     actionItems,
                     followUpNeeded,
                     reminderDate,
-                    followUpNeeded.toLowerCase() === "yes" ? "Pending" : "N/A",
-                    callerEmail
+                    followUpStatus,
+                    callerEmail,
+                    record.id // 9th column: Call ID
                 ];
                 // 5. Save AI results to Google Sheets
                 const SHEET_ID = "1GEP1JtBcybnpVfDmeEr58zEhKMM1CgvfQP15wgljBJs";
@@ -824,6 +829,7 @@ app.post('/api/recordings/:id', async (req, res) => {
             const followUpNeeded = result.follow_up_needed || "No";
             const reminderDate = result.reminder_date || "";
             const callerEmail = result.caller_email || "";
+            const followUpStatus = result.follow_up_status || (followUpNeeded.toLowerCase() === "yes" ? "Pending" : "N/A");
             const rowData = [
                 today,
                 caller || data.caller,
@@ -831,8 +837,9 @@ app.post('/api/recordings/:id', async (req, res) => {
                 actionItems,
                 followUpNeeded,
                 reminderDate,
-                followUpNeeded.toLowerCase() === "yes" ? "Pending" : "N/A",
-                callerEmail
+                followUpStatus,
+                callerEmail,
+                id // 9th column: Call ID
             ];
             const SHEET_ID = "1GEP1JtBcybnpVfDmeEr58zEhKMM1CgvfQP15wgljBJs";
             await (0, googleSheetsManager_1.appendCallData)(SHEET_ID, rowData);

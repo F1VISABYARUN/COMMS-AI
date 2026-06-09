@@ -155,7 +155,7 @@ function getAuthClient() {
 }
 /**
  * Appends a row of data to the specified Google Sheet.
- * rowData should be: [Date, Caller ID, Summary, Action Items, Follow-up Needed, Reminder Date, Status]
+ * rowData should be: [Date, Caller ID, Summary, Action Items, Follow-up Needed, Reminder Date, Status, Email, Call ID]
  */
 async function appendCallData(sheetId, rowData) {
     const auth = getAuthClient();
@@ -165,7 +165,7 @@ async function appendCallData(sheetId, rowData) {
         const sheets = googleapis_1.google.sheets({ version: 'v4', auth });
         await sheets.spreadsheets.values.append({
             spreadsheetId: sheetId,
-            range: 'Sheet1!A:H',
+            range: 'Sheet1!A:I',
             valueInputOption: 'USER_ENTERED',
             requestBody: {
                 values: [rowData]
@@ -191,7 +191,7 @@ async function getPendingReminders(sheetId) {
         const sheets = googleapis_1.google.sheets({ version: 'v4', auth });
         const response = await sheets.spreadsheets.values.get({
             spreadsheetId: sheetId,
-            range: 'Sheet1!A:H',
+            range: 'Sheet1!A:I',
         });
         const rows = response.data.values;
         if (!rows || rows.length <= 1) {
@@ -207,6 +207,10 @@ async function getPendingReminders(sheetId) {
             headers.forEach((header, index) => {
                 record[header] = row[index] !== undefined ? row[index] : '';
             });
+            // Fallback for Call ID if not mapped via header names
+            if (row[8] !== undefined && !record['Call ID']) {
+                record['Call ID'] = row[8];
+            }
             if (record['Status']?.toString().toLowerCase() === 'pending') {
                 pending.push({
                     row_index: i + 1, // 1-indexed, so row 2 corresponds to rows[1]
