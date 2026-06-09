@@ -32,9 +32,13 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.supabase = void 0;
 const supabase_js_1 = require("@supabase/supabase-js");
+const ws_1 = __importDefault(require("ws"));
 const dotenv = __importStar(require("dotenv"));
 dotenv.config();
 // We use process.env first, but fallback to the keys you provided so it works out of the box locally.
@@ -43,4 +47,11 @@ const supabaseKey = process.env.SUPABASE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6Ikp
 if (!supabaseUrl || !supabaseKey) {
     console.warn('[WARN] Missing Supabase environment variables. Database operations may fail.');
 }
-exports.supabase = (0, supabase_js_1.createClient)(supabaseUrl, supabaseKey);
+exports.supabase = (0, supabase_js_1.createClient)(supabaseUrl, supabaseKey, {
+    auth: {
+        persistSession: false
+    },
+    realtime: {
+        transport: ws_1.default
+    }
+});

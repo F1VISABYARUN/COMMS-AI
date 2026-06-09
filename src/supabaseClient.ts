@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import WebSocket from 'ws';
 import * as dotenv from 'dotenv';
 dotenv.config();
 
@@ -10,4 +11,12 @@ if (!supabaseUrl || !supabaseKey) {
   console.warn('[WARN] Missing Supabase environment variables. Database operations may fail.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+export const supabase = createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    persistSession: false
+  },
+  realtime: {
+    transport: WebSocket as any
+  }
+});
+
