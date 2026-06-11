@@ -7,6 +7,9 @@
     <meta name="description" content="Turn every call into structured CRM actions, tasks, and follow-up drafts using AI.">
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { darkMode: ['class', '.dark-mode'] }
+    </script>
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Custom Styles -->
@@ -34,7 +37,7 @@
     </header>
 
     <!-- Sidebar -->
-    <aside id="sidebar-panel" class="sidebar w-full md:w-60 flex-shrink-0 flex-col justify-between hidden md:flex fixed md:relative h-[calc(100vh-53px)] md:h-screen z-40">
+    <aside id="sidebar-panel" class="sidebar w-full md:w-60 flex-shrink-0 flex-col justify-between hidden md:flex fixed inset-y-0 left-0 top-[53px] md:relative md:top-0 h-[calc(100vh-53px)] md:h-screen z-40">
         <div>
             <!-- Logo -->
             <div class="p-5 pb-4 hidden md:flex items-center gap-3">

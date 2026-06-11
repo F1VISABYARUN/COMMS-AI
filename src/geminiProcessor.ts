@@ -143,18 +143,24 @@ Respond ONLY with valid JSON. Do not include markdown formatting or backticks.
     const response = result.response;
     let text = response.text().trim();
 
-    // Clean up potential markdown JSON code block wrappers
-    if (text.startsWith("```json")) {
-      text = text.substring(7);
-    } else if (text.startsWith("```")) {
-      text = text.substring(3);
-    }
-    if (text.endsWith("```")) {
-      text = text.substring(0, text.length - 3);
+    // Clean up potential markdown JSON code block wrappers and extra text
+    const match = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+    if (match) {
+      text = match[1];
+    } else {
+      if (text.startsWith("```json")) text = text.substring(7);
+      else if (text.startsWith("```")) text = text.substring(3);
+      if (text.endsWith("```")) text = text.substring(0, text.length - 3);
     }
     text = text.trim();
-
-    const data = JSON.parse(text);
+    
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      console.error("[ERR] JSON parsing failed for response:", text);
+      throw e;
+    }
     console.log(`[AI] Audio analysis complete — transcript length: ${(data.transcript || '').length} chars`);
     return data;
   } catch (error) {
@@ -208,18 +214,24 @@ Respond ONLY with valid JSON. Do not include markdown formatting or backticks.
     const response = result.response;
     let text = response.text().trim();
 
-    // Clean up potential markdown JSON code block wrappers
-    if (text.startsWith("```json")) {
-      text = text.substring(7);
-    } else if (text.startsWith("```")) {
-      text = text.substring(3);
-    }
-    if (text.endsWith("```")) {
-      text = text.substring(0, text.length - 3);
+    // Clean up potential markdown JSON code block wrappers and extra text
+    const match = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+    if (match) {
+      text = match[1];
+    } else {
+      if (text.startsWith("```json")) text = text.substring(7);
+      else if (text.startsWith("```")) text = text.substring(3);
+      if (text.endsWith("```")) text = text.substring(0, text.length - 3);
     }
     text = text.trim();
-
-    const data = JSON.parse(text);
+    
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      console.error("[ERR] JSON parsing failed for response:", text);
+      throw e;
+    }
     return data;
   } catch (error) {
     console.error(`[ERR] Failed to process transcript with Gemini:`, error);

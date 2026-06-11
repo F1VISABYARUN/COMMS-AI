@@ -346,6 +346,9 @@ app.post('/api/process', async (req, res) => {
         catch (err) {
             console.error('[ERR] Failed to process uploaded audio with Gemini:', err);
         }
+        if (!processedRecord) {
+            return res.status(500).json({ success: false, error: "AI processing failed. Please try again." });
+        }
     }
     // Fallback to text processing if audio was not processed or not provided
     if (!processedRecord) {
@@ -846,7 +849,20 @@ app.post('/twilio/recording-status', async (req, res) => {
                 ];
                 // 5. Save AI results to Google Sheets
                 const SHEET_ID = "1GEP1JtBcybnpVfDmeEr58zEhKMM1CgvfQP15wgljBJs";
-                await (0, googleSheetsManager_1.appendCallData)(SHEET_ID, rowData);
+                let retries = 3;
+                while (retries > 0) {
+                    try {
+                        await (0, googleSheetsManager_1.appendCallData)(SHEET_ID, rowData);
+                        break; // Success, exit loop
+                    }
+                    catch (err) {
+                        retries--;
+                        if (retries === 0)
+                            console.error("[ERR] FATAL: Failed to write to Sheets after 3 attempts.", err);
+                        else
+                            await new Promise(res => setTimeout(res, 2000)); // Wait 2s before retry
+                    }
+                }
             }
             // 6. Save the final record to Supabase
             try {

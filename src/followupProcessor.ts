@@ -196,6 +196,9 @@ export async function checkAndSendFollowups(): Promise<void> {
             console.error(`[ERR] Exception syncing Supabase follow-up status:`, dbErr);
           }
         }
+      } else {
+        console.warn(`[ERR] Both SMS and Email failed for row ${rowIndex}. Marking as completed to prevent infinite loop.`);
+        await markReminderCompleted(SHEET_ID, rowIndex);
       }
     }
   }
@@ -204,12 +207,21 @@ export async function checkAndSendFollowups(): Promise<void> {
 /**
  * Starts the cron scheduler to run every 1 minute.
  */
+let isProcessing = false;
+
 export function startScheduler(): void {
   cron.schedule('*/1 * * * *', async () => {
+    if (isProcessing) {
+      console.log("[WARN] Previous cron job is still running. Skipping this minute.");
+      return;
+    }
+    isProcessing = true;
     try {
       await checkAndSendFollowups();
     } catch (error) {
       console.error('[ERR] Error in follow-up cron job:', error);
+    } finally {
+      isProcessing = false;
     }
   });
   console.log("[OK] Follow-up Scheduler started! It will check Google Sheets every 1 minute.");

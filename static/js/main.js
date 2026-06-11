@@ -38,8 +38,8 @@ document.addEventListener("DOMContentLoaded", () => {
         return [...localRecords, ...uniqueServerRecords].sort((a, b) => b.timestamp - a.timestamp);
     };
 
-    const updateStats = () => {
-        const records = getRecords();
+    const updateStats = (recordsArray) => {
+        const records = recordsArray || getRecords();
         const el = (id) => document.getElementById(id);
         if (!el("stat-total-calls")) return;
 
@@ -47,9 +47,9 @@ document.addEventListener("DOMContentLoaded", () => {
         records.forEach(r => {
             if (r.result && r.result.tasks) {
                 totalTasks += r.result.tasks.length;
-                if (r.result.urgency === "high") {
-                    urgentTasks += r.result.tasks.filter(t => t.priority === "high").length;
-                }
+            }
+            if (r.result && r.result.urgency === "high") { 
+                urgentTasks++; 
             }
         });
 
@@ -390,6 +390,7 @@ document.addEventListener("DOMContentLoaded", () => {
         };
 
         document.getElementById("add-objection-btn")?.addEventListener("click", () => {
+            res.objections = Array.from(document.querySelectorAll(".objection-item-input")).map(i => i.value.trim());
             res.objections.push("New concern");
             renderObjections();
         });
@@ -418,6 +419,7 @@ document.addEventListener("DOMContentLoaded", () => {
         };
 
         document.getElementById("add-missing-btn")?.addEventListener("click", () => {
+            res.missing_info = Array.from(document.querySelectorAll(".missing-item-input")).map(i => i.value.trim());
             res.missing_info.push("New requirement");
             renderMissing();
         });
@@ -685,7 +687,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     body: JSON.stringify(call)
                 });
                 if (!response.ok) {
-                    console.error("Failed to update database.");
+                    alert("Failed to save changes to the database.");
+                    saveBtn.innerHTML = originalHTML; 
+                    saveBtn.disabled = false;
+                    return; // Prevent redirect
                 }
             } catch (err) {
                 console.error("Network error updating database:", err);
@@ -797,7 +802,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 historyList.appendChild(div);
             });
 
-            updateStats();
+            updateStats(records);
         };
 
         // Filter chips
