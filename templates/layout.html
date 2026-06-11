@@ -99,6 +99,7 @@
             </div>
         </div>
     </aside>
+    {% endif %}
 
     <!-- Main Content -->
     <main class="flex-grow flex flex-col overflow-y-auto {% if request.path != '/' %}h-[calc(100vh-53px)] md:h-screen bg-[#f7f8fa]{% else %}w-full bg-[#f8fafc]{% endif %}">
@@ -106,7 +107,6 @@
             {% block content %}{% endblock %}
         </div>
     </main>
-    {% endif %}
 
     <!-- Scripts -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
