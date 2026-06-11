@@ -223,3 +223,24 @@ export async function markReminderCompleted(sheetId: string, rowIndex: number): 
     return false;
   }
 }
+
+/**
+ * Tests if the service account can authenticate and read the specified Google Sheet.
+ */
+export async function testSheetsConnection(sheetId: string): Promise<boolean> {
+  const auth = getAuthClient();
+  if (!auth) return false;
+  
+  try {
+    const sheets = google.sheets({ version: 'v4', auth });
+    await sheets.spreadsheets.get({
+      spreadsheetId: sheetId,
+    });
+    console.log(`[OK] Google Sheets connection test passed for ID: ${sheetId}`);
+    return true;
+  } catch (error) {
+    console.error(`[ERR] Google Sheets connection test failed for ID ${sheetId}:`, error);
+    return false;
+  }
+}
+

@@ -12,8 +12,8 @@ import { supabase } from './supabaseClient';
 
 // Import our custom modules
 import { processCallTranscriptWithGemini, processCallAudioWithGemini, downloadTwilioRecording } from './geminiProcessor';
-import { appendCallData } from './googleSheetsManager';
-import { startScheduler } from './followupProcessor';
+import { appendCallData, testSheetsConnection } from './googleSheetsManager';
+import { startScheduler, checkAndSendFollowups } from './followupProcessor';
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -238,6 +238,10 @@ const SAMPLE_TRANSCRIPTS: { [key: string]: any } = {
 // ============================================================
 
 app.get('/', (req, res) => {
+  res.render('landing.html');
+});
+
+app.get('/dashboard', (req, res) => {
   res.render('home.html');
 });
 
@@ -251,6 +255,14 @@ app.get('/results/:callId', (req, res) => {
 
 app.get('/history', (req, res) => {
   res.render('history.html');
+});
+
+app.get('/campaigns', (req, res) => {
+  res.render('campaigns.html');
+});
+
+app.get('/sync-check', (req, res) => {
+  res.render('sync.html');
 });
 
 // ============================================================
@@ -527,6 +539,136 @@ app.post('/api/send-whatsapp', async (req, res) => {
   } catch (error: any) {
     console.error(`[ERR] WhatsApp failed:`, error);
     res.status(400).json({ success: false, error: error.message });
+  }
+});
+
+// ============================================================
+//  TWILIO: SEND BULK MESSAGES
+// ============================================================
+
+app.post('/api/bulk-message', async (req, res) => {
+  if (!twilioClient) {
+    res.status(500).json({ success: false, error: "Twilio is not configured." });
+    return;
+  }
+
+  const { numbers, message, channel } = req.body || {};
+
+  if (!numbers || !Array.isArray(numbers) || numbers.length === 0 || !message) {
+    res.status(400).json({ success: false, error: "Both 'numbers' (array) and 'message' (string) are required." });
+    return;
+  }
+
+  const results: any[] = [];
+  for (let num of numbers) {
+    num = num.trim();
+    if (!num) continue;
+    try {
+      let msgSid = "";
+      if (channel === 'whatsapp') {
+        const whatsappTo = num.startsWith("whatsapp:") ? num : `whatsapp:${num}`;
+        const whatsappFrom = `whatsapp:${TWILIO_WHATSAPP}`;
+        const msg = await twilioClient.messages.create({
+          body: message,
+          from: whatsappFrom,
+          to: whatsappTo
+        });
+        msgSid = msg.sid;
+      } else {
+        // SMS
+        let targetPhone = num;
+        if (!targetPhone.startsWith('+') && /^\d+$/.test(targetPhone) && targetPhone.length === 10) {
+          const myMobile = process.env.MY_MOBILE_NUMBER || '';
+          if (myMobile.startsWith('+91')) {
+            targetPhone = '+91' + targetPhone;
+          } else {
+            targetPhone = '+1' + targetPhone;
+          }
+        }
+        const msg = await twilioClient.messages.create({
+          body: message,
+          from: TWILIO_PHONE,
+          to: targetPhone
+        });
+        msgSid = msg.sid;
+      }
+      results.push({ number: num, success: true, sid: msgSid });
+    } catch (err: any) {
+      console.error(`[ERR] Bulk message failed to ${num}:`, err.message);
+      results.push({ number: num, success: false, error: err.message });
+    }
+  }
+
+  res.json({ success: true, results });
+});
+
+// ============================================================
+//  API: DIAGNOSTIC SYNC STATUS & TRIGGER
+// ============================================================
+
+app.get('/api/sync-status', async (req, res) => {
+  const twilioConfigured = twilioClient !== null;
+  const supabaseUrlConfigured = !!process.env.SUPABASE_URL;
+  const googleEmailConfigured = !!process.env.GOOGLE_CLIENT_EMAIL;
+  const SHEET_ID = "1GEP1JtBcybnpVfDmeEr58zEhKMM1CgvfQP15wgljBJs";
+
+  let sheetsConnectionOk = false;
+  try {
+    sheetsConnectionOk = await testSheetsConnection(SHEET_ID);
+  } catch (err) {
+    console.warn(`[WARN] Failed to test sheets connection:`, err);
+  }
+
+  let recordCount = 0;
+  let pendingRemindersCount = 0;
+  try {
+    const { count, error } = await supabase
+      .from('recordings')
+      .select('id', { count: 'exact', head: true });
+      
+    if (!error && count !== null) {
+      recordCount = count;
+    }
+
+    const { data: pendingData, error: pendingErr } = await supabase
+      .from('recordings')
+      .select('id')
+      .eq('result->follow_up_status', 'Pending');
+      
+    if (!pendingErr && pendingData) {
+      pendingRemindersCount = pendingData.length;
+    }
+  } catch (err) {
+    console.warn(`[WARN] Supabase count failed:`, err);
+  }
+
+  res.json({
+    twilio: {
+      configured: twilioConfigured,
+      phone: TWILIO_PHONE,
+      whatsapp: TWILIO_WHATSAPP
+    },
+    supabase: {
+      configured: supabaseUrlConfigured,
+      record_count: recordCount,
+      pending_count: pendingRemindersCount
+    },
+    google_sheets: {
+      configured: googleEmailConfigured,
+      sheet_id: SHEET_ID,
+      connected: sheetsConnectionOk
+    }
+  });
+});
+
+app.post('/api/sync-trigger', async (req, res) => {
+  try {
+    console.log(`[SYNC] Manual sync triggered from UI.`);
+    await checkAndSendFollowups();
+    res.json({ success: true, message: "Sync job completed successfully." });
+  } catch (err: any) {
+    console.error(`[ERR] Manual sync trigger failed:`, err);
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

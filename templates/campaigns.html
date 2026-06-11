@@ -1,0 +1,117 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<div class="space-y-7 animate-fade-in pb-12">
+
+    <!-- Page Header -->
+    <div>
+        <h2 class="text-2xl font-bold text-gray-900 tracking-tight">Bulk Campaigns</h2>
+        <p class="text-sm text-gray-500 mt-1">Broadcast updates, schedules, or follow-ups to multiple clients in one click using Twilio.</p>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Left Column: Lead Target Selector (7 cols) -->
+        <div class="lg:col-span-8 space-y-4">
+            <div class="card p-6 space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100">
+                    <div>
+                        <h3 class="text-sm font-bold text-gray-800 uppercase tracking-wider">Target Recipients</h3>
+                        <p class="text-[10px] text-gray-400 mt-0.5">Select callers retrieved from recent database activities</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button id="select-all-btn" class="btn-secondary px-3 py-1.5 rounded-lg text-[10px] font-semibold flex items-center gap-1">
+                            <i class="fa-solid fa-square-check"></i> Select All
+                        </button>
+                        <button id="select-hot-btn" class="px-3 py-1.5 rounded-lg text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 flex items-center gap-1 transition-colors">
+                            <i class="fa-solid fa-fire text-amber-500"></i> Select Hot Leads
+                        </button>
+                        <button id="clear-select-btn" class="btn-secondary px-3 py-1.5 rounded-lg text-[10px] font-semibold flex items-center gap-1">
+                            <i class="fa-solid fa-square-minus"></i> Clear
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Recipient List Table -->
+                <div class="overflow-x-auto max-h-[450px] overflow-y-auto pr-1">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr class="border-b border-gray-100 text-gray-400 font-bold uppercase text-[9px] tracking-wider">
+                                <th class="py-3 px-2 w-10">Select</th>
+                                <th class="py-3 px-3">Caller</th>
+                                <th class="py-3 px-3">Phone</th>
+                                <th class="py-3 px-3">Vertical</th>
+                                <th class="py-3 px-3">Lead Status</th>
+                                <th class="py-3 px-3 text-right">Actions count</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recipients-list" class="divide-y divide-gray-50 text-gray-700">
+                            <!-- Loaded Dynamically -->
+                            <tr>
+                                <td colspan="6" class="text-center py-12 text-gray-400 text-xs">
+                                    <i class="fa-solid fa-spinner animate-spin text-lg mb-2 block"></i>
+                                    Fetching recipient directory...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Campaign Composer & Dispatch (4 cols) -->
+        <div class="lg:col-span-4 space-y-4">
+            <div class="card p-6 space-y-5">
+                <div>
+                    <h3 class="text-sm font-bold text-gray-800 uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fa-solid fa-pen-to-square text-violet-500"></i> Message Composer
+                    </h3>
+                    <p class="text-[10px] text-gray-400 mt-0.5">Compose your campaign broadcast body</p>
+                </div>
+
+                <!-- Channel Selector -->
+                <div class="space-y-2">
+                    <label class="block text-[11px] font-bold text-gray-700 uppercase tracking-wider">Channel</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button id="channel-sms" class="px-3 py-2 rounded-lg text-xs font-semibold border border-violet-500 bg-violet-50 text-violet-700 flex items-center justify-center gap-1.5 transition-all">
+                            <i class="fa-solid fa-message"></i> Twilio SMS
+                        </button>
+                        <button id="channel-whatsapp" class="px-3 py-2 rounded-lg text-xs font-semibold border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 flex items-center justify-center gap-1.5 transition-all">
+                            <i class="fa-brands fa-whatsapp text-emerald-500"></i> WhatsApp
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Template Preset Dropdown -->
+                <div class="space-y-1.5">
+                    <label for="template-select" class="block text-[11px] font-bold text-gray-700 uppercase tracking-wider">Load Template</label>
+                    <select id="template-select" class="form-input w-full px-3 py-2.5 rounded-lg text-xs">
+                        <option value="">-- Custom Message (No Template) --</option>
+                        <option value="ias_demo">Coaching: IAS Demo Class Saturday invitation</option>
+                        <option value="pricing_installment">Coaching: Fee structure & Installment option link</option>
+                        <option value="followup_general">General: Standard thank you callback follow-up</option>
+                    </select>
+                </div>
+
+                <!-- Message Textarea -->
+                <div class="space-y-1.5">
+                    <label for="campaign-message" class="block text-[11px] font-bold text-gray-700 uppercase tracking-wider">Message Content</label>
+                    <textarea id="campaign-message" rows="6" class="form-input w-full p-3.5 rounded-xl text-xs leading-relaxed resize-none" placeholder="Type your broadcast message here..."></textarea>
+                    <span class="text-[9px] text-gray-400 font-medium block text-right">Selected: <span id="selected-count" class="font-bold text-violet-600">0</span> recipient(s)</span>
+                </div>
+
+                <!-- Status Alert Box -->
+                <div id="campaign-status" class="hidden"></div>
+
+                <!-- Send Button -->
+                <button id="send-campaign-btn" class="w-full btn-primary py-3 rounded-lg text-sm font-bold flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-paper-plane"></i> Send Campaign Broadcast
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

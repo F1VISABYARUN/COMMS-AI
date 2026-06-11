@@ -36,6 +36,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.appendCallData = appendCallData;
 exports.getPendingReminders = getPendingReminders;
 exports.markReminderCompleted = markReminderCompleted;
+exports.testSheetsConnection = testSheetsConnection;
 const googleapis_1 = require("googleapis");
 const path = __importStar(require("path"));
 const fs = __importStar(require("fs"));
@@ -247,6 +248,26 @@ async function markReminderCompleted(sheetId, rowIndex) {
     }
     catch (error) {
         console.error(`[ERR] Error updating status in row ${rowIndex}:`, error);
+        return false;
+    }
+}
+/**
+ * Tests if the service account can authenticate and read the specified Google Sheet.
+ */
+async function testSheetsConnection(sheetId) {
+    const auth = getAuthClient();
+    if (!auth)
+        return false;
+    try {
+        const sheets = googleapis_1.google.sheets({ version: 'v4', auth });
+        await sheets.spreadsheets.get({
+            spreadsheetId: sheetId,
+        });
+        console.log(`[OK] Google Sheets connection test passed for ID: ${sheetId}`);
+        return true;
+    }
+    catch (error) {
+        console.error(`[ERR] Google Sheets connection test failed for ID ${sheetId}:`, error);
         return false;
     }
 }

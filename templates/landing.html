@@ -1,0 +1,308 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+<!-- Landing Page Container -->
+<div class="min-h-screen flex flex-col bg-slate-950 text-slate-100 selection:bg-violet-500/30 selection:text-violet-200">
+    
+    <!-- Top Nav Header -->
+    <header class="w-full max-w-7xl mx-auto px-6 py-5 flex items-center justify-between z-50">
+        <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-violet-600 flex items-center justify-center shadow-lg shadow-violet-500/20">
+                <i class="fa-solid fa-bolt text-white text-base"></i>
+            </div>
+            <div>
+                <span class="font-extrabold text-white text-base tracking-tight block">Comms AI</span>
+                <span class="text-[9px] text-violet-400 uppercase tracking-widest font-bold">Call Intelligence</span>
+            </div>
+        </div>
+
+        <nav class="hidden md:flex items-center gap-8 text-xs font-semibold text-slate-400">
+            <a href="#features" class="hover:text-white transition-colors">Features</a>
+            <a href="#workflow" class="hover:text-white transition-colors">How It Works</a>
+            <a href="#pricing" class="hover:text-white transition-colors">Pricing</a>
+        </nav>
+
+        <a href="/dashboard" class="px-4.5 py-2 rounded-lg text-xs font-bold bg-violet-600 text-white hover:bg-violet-500 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-md shadow-violet-600/10">
+            Launch Platform <i class="fa-solid fa-arrow-right text-[10px] ml-1"></i>
+        </a>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="w-full max-w-7xl mx-auto px-6 pt-16 pb-20 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center relative">
+        <!-- Background Radial glow -->
+        <div class="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-violet-600/10 rounded-full blur-3xl -z-10"></div>
+        
+        <div class="lg:col-span-7 space-y-6 text-left">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-xs font-semibold text-violet-400">
+                <span class="w-1.5 h-1.5 rounded-full bg-violet-500 animate-ping"></span> Real-Time Voice Intelligence
+            </span>
+            <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white tracking-tight leading-[1.1]">
+                Voice agents automate calls that should not need a human.
+            </h1>
+            <p class="text-3xl md:text-4xl font-extrabold text-slate-400 tracking-tight leading-tight">
+                Comms AI compounds the value of calls that still do.
+            </p>
+            <p class="text-sm md:text-base text-slate-400 max-w-2xl leading-relaxed">
+                Turn every phone discussion into structured customer memory, instant CRM entries, WhatsApp follow-ups, and calendar action logs automatically. Built for team leaders who want to close every loop.
+            </p>
+            <div class="flex flex-wrap gap-4 pt-3">
+                <a href="/dashboard" class="px-6 py-3 rounded-lg text-sm font-bold bg-violet-600 text-white hover:bg-violet-500 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-violet-600/20 flex items-center gap-2">
+                    <i class="fa-solid fa-rocket"></i> Get Started Free
+                </a>
+                <a href="#features" class="px-6 py-3 rounded-lg text-sm font-bold bg-slate-900 text-slate-300 hover:bg-slate-800 border border-slate-800 transition-all flex items-center gap-2">
+                    See Features <i class="fa-solid fa-chevron-down text-xs"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- Hero Mockup Display -->
+        <div class="lg:col-span-5 relative">
+            <div class="w-full bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-2xl relative overflow-hidden">
+                <div class="absolute -right-10 -top-10 w-36 h-36 bg-violet-500/10 rounded-full blur-2xl"></div>
+                
+                <!-- Mock Header -->
+                <div class="flex items-center justify-between pb-4 border-b border-slate-800 text-xs">
+                    <span class="font-bold text-slate-200"><i class="fa-solid fa-phone text-violet-500 mr-1.5"></i> Live Call Stream</span>
+                    <span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-semibold text-[10px] animate-pulse">Connected</span>
+                </div>
+
+                <!-- Call Flow Mock -->
+                <div class="space-y-4 pt-4 text-left">
+                    <div class="space-y-1">
+                        <span class="text-[9px] uppercase font-bold tracking-wider text-slate-500">Caller (Rahul)</span>
+                        <div class="p-3 bg-slate-800/50 rounded-xl border border-slate-800 text-xs text-slate-300 leading-relaxed">
+                            "Hello, I need to check IAS exam details and coaching installment pricing. Can you schedule a demo slot this Saturday?"
+                        </div>
+                    </div>
+
+                    <div class="text-center py-1 flex items-center justify-center gap-1.5">
+                        <span class="w-1.5 h-1.5 bg-violet-500 rounded-full animate-bounce"></span>
+                        <span class="w-1.5 h-1.5 bg-violet-500 rounded-full animate-bounce" style="animation-delay: 0.15s"></span>
+                        <span class="w-1.5 h-1.5 bg-violet-500 rounded-full animate-bounce" style="animation-delay: 0.3s"></span>
+                        <span class="text-[10px] text-violet-400 font-semibold ml-1">Comms AI analyzing call...</span>
+                    </div>
+
+                    <div class="space-y-3 pt-2">
+                        <span class="text-[9px] uppercase font-bold tracking-wider text-slate-500">AI Extracted Outputs</span>
+                        
+                        <div class="grid grid-cols-2 gap-2 text-[10px]">
+                            <div class="p-2.5 bg-slate-950/80 rounded-lg border border-slate-800/80">
+                                <span class="block text-slate-500 font-bold uppercase text-[8px]">Intent</span>
+                                <span class="font-semibold text-slate-200">IAS Demo Registration</span>
+                            </div>
+                            <div class="p-2.5 bg-slate-950/80 rounded-lg border border-slate-800/80">
+                                <span class="block text-slate-500 font-bold uppercase text-[8px]">Urgency</span>
+                                <span class="font-semibold text-amber-400">🔥 High Urgency</span>
+                            </div>
+                        </div>
+
+                        <div class="p-3 bg-violet-950/20 rounded-xl border border-violet-500/15 space-y-1.5 text-[10px]">
+                            <span class="font-bold text-violet-400 block uppercase text-[8px]"><i class="fa-brands fa-whatsapp text-emerald-500"></i> Auto-Generated Follow-up Draft</span>
+                            <p class="text-slate-300 italic">"Hi Rahul, I've reserved your seat for this Saturday's IAS Demo Class. Here are details on installment structures..."</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="w-full bg-slate-900/40 border-y border-slate-900 py-20 relative">
+        <div class="w-full max-w-7xl mx-auto px-6 space-y-12">
+            
+            <div class="text-center max-w-3xl mx-auto space-y-3">
+                <span class="text-xs font-bold text-violet-500 uppercase tracking-widest">Premium Features</span>
+                <h2 class="text-2xl md:text-4xl font-extrabold text-white tracking-tight">Everything you need to close the loop</h2>
+                <p class="text-sm text-slate-400 leading-relaxed">
+                    Stop letting customer leads die inside calendar notes and scribbled notebooks. Comms AI drives workflow execution directly.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Feature 1 -->
+                <div class="p-6 bg-slate-900/60 border border-slate-800 rounded-2xl hover:border-violet-500/30 hover:scale-[1.01] transition-all space-y-4">
+                    <div class="w-10 h-10 rounded-xl bg-violet-500/10 text-violet-400 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-microphone-lines"></i>
+                    </div>
+                    <h3 class="font-bold text-white text-base">Direct Call Streaming</h3>
+                    <p class="text-xs text-slate-400 leading-relaxed">
+                        Connect Twilio numbers directly. Stream incoming call recordings to Gemini, bypassing expensive third-party speech-to-text providers.
+                    </p>
+                </div>
+
+                <!-- Feature 2 -->
+                <div class="p-6 bg-slate-900/60 border border-slate-800 rounded-2xl hover:border-violet-500/30 hover:scale-[1.01] transition-all space-y-4">
+                    <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-fire"></i>
+                    </div>
+                    <h3 class="font-bold text-white text-base">🔥 Lead Urgency Tagging</h3>
+                    <p class="text-xs text-slate-400 leading-relaxed">
+                        Gemini identifies objections, missing information, and tags caller intent to automatically filter "Hot Leads" to the top of your stack.
+                    </p>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="p-6 bg-slate-900/60 border border-slate-800 rounded-2xl hover:border-violet-500/30 hover:scale-[1.01] transition-all space-y-4">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-lg">
+                        <i class="fa-brands fa-google text-emerald-500"></i>
+                    </div>
+                    <h3 class="font-bold text-white text-base">Google Sheets Sync</h3>
+                    <p class="text-xs text-slate-400 leading-relaxed">
+                        All call data, tasks, Intent status, and target dates are instantly appended to your collaborative Google spreadsheet in real-time.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section id="workflow" class="w-full max-w-7xl mx-auto px-6 py-20 space-y-12">
+        <div class="text-center max-w-3xl mx-auto space-y-3">
+            <span class="text-xs font-bold text-violet-500 uppercase tracking-widest">Workflow Timeline</span>
+            <h2 class="text-2xl md:text-4xl font-extrabold text-white tracking-tight">How Comms AI Operates</h2>
+            <p class="text-sm text-slate-400 leading-relaxed">
+                A seamless sequence that runs in the background while your team stays focused on talking to customers.
+            </p>
+        </div>
+
+        <div class="relative max-w-4xl mx-auto">
+            <!-- Central Line -->
+            <div class="absolute left-4 md:left-1/2 top-4 bottom-4 w-0.5 bg-slate-800 -translate-x-1/2"></div>
+            
+            <div class="space-y-12">
+                <!-- Step 1 -->
+                <div class="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-6 md:gap-12">
+                    <div class="absolute left-4 md:left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-violet-600 border-4 border-slate-950 flex items-center justify-center z-10"></div>
+                    <div class="w-full md:w-[45%] text-left md:text-right space-y-1.5 pl-10 md:pl-0">
+                        <span class="text-violet-400 text-xs font-bold uppercase">Step 01</span>
+                        <h4 class="font-bold text-white text-sm">Customer Calls In</h4>
+                        <p class="text-xs text-slate-400 leading-relaxed">A customer calls your Twilio number or schedules a callback. The system answers, bridges the call, and records the conversation.</p>
+                    </div>
+                    <div class="hidden md:block w-[45%]"></div>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-6 md:gap-12">
+                    <div class="absolute left-4 md:left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-violet-600 border-4 border-slate-950 flex items-center justify-center z-10"></div>
+                    <div class="hidden md:block w-[45%]"></div>
+                    <div class="w-full md:w-[45%] text-left space-y-1.5 pl-10 md:pl-0">
+                        <span class="text-violet-400 text-xs font-bold uppercase">Step 02</span>
+                        <h4 class="font-bold text-white text-sm">Gemini Processes Audio</h4>
+                        <p class="text-xs text-slate-400 leading-relaxed">Our advanced integration passes raw audio bytes to Gemini to perform speech transcription, intent tagging, and task list generation in one single step.</p>
+                    </div>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-6 md:gap-12">
+                    <div class="absolute left-4 md:left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-violet-600 border-4 border-slate-950 flex items-center justify-center z-10"></div>
+                    <div class="w-full md:w-[45%] text-left md:text-right space-y-1.5 pl-10 md:pl-0">
+                        <span class="text-violet-400 text-xs font-bold uppercase">Step 03</span>
+                        <h4 class="font-bold text-white text-sm">Google Sheet Appended</h4>
+                        <p class="text-xs text-slate-400 leading-relaxed">The AI output automatically populates your spreadsheet. Your database syncs instantly, keeping your CRM records complete.</p>
+                    </div>
+                    <div class="hidden md:block w-[45%]"></div>
+                </div>
+
+                <!-- Step 4 -->
+                <div class="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-6 md:gap-12">
+                    <div class="absolute left-4 md:left-1/2 -translate-x-1/2 w-6 h-6 rounded-full bg-violet-600 border-4 border-slate-950 flex items-center justify-center z-10"></div>
+                    <div class="hidden md:block w-[45%]"></div>
+                    <div class="w-full md:w-[45%] text-left space-y-1.5 pl-10 md:pl-0">
+                        <span class="text-violet-400 text-xs font-bold uppercase">Step 04</span>
+                        <h4 class="font-bold text-white text-sm">Follow-up Dispatched</h4>
+                        <p class="text-xs text-slate-400 leading-relaxed">The background cron scheduler runs. If a callback is due, it triggers Twilio to send a follow-up WhatsApp or SMS template message immediately.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section id="pricing" class="w-full bg-slate-900/40 border-t border-slate-900 py-20">
+        <div class="w-full max-w-7xl mx-auto px-6 space-y-12">
+            <div class="text-center max-w-3xl mx-auto space-y-3">
+                <span class="text-xs font-bold text-violet-500 uppercase tracking-widest">Pricing Tiers</span>
+                <h2 class="text-2xl md:text-4xl font-extrabold text-white tracking-tight">Flexible plans for growing teams</h2>
+                <p class="text-sm text-slate-400 leading-relaxed">
+                    Choose the plan that matches your monthly client volume. Secure your setup today.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+                <!-- Plan 1 -->
+                <div class="p-6 bg-slate-900/60 border border-slate-800 rounded-2xl flex flex-col justify-between text-left space-y-6">
+                    <div class="space-y-3">
+                        <h4 class="font-bold text-slate-300 text-sm">Starter</h4>
+                        <div class="flex items-baseline text-white">
+                            <span class="text-2xl font-bold">₹1,999</span>
+                            <span class="text-xs text-slate-500 ml-1">/ month</span>
+                        </div>
+                        <p class="text-[11px] text-slate-400 leading-relaxed">Ideal for individual consultants or small teams starting out with voice AI.</p>
+                        <ul class="text-[11px] text-slate-300 space-y-2 pt-2">
+                            <li><i class="fa-solid fa-check text-violet-500 mr-1.5"></i> Up to 100 calls / month</li>
+                            <li><i class="fa-solid fa-check text-violet-500 mr-1.5"></i> Automated Google Sheets sync</li>
+                            <li><i class="fa-solid fa-check text-violet-500 mr-1.5"></i> SMS follow-up templates</li>
+                            <li><i class="fa-solid fa-check text-violet-500 mr-1.5"></i> 7-day log retention</li>
+                        </ul>
+                    </div>
+                    <a href="/dashboard" class="w-full py-2.5 rounded-lg text-xs font-semibold bg-slate-850 hover:bg-slate-800 border border-slate-800 text-slate-200 transition-all text-center">Start Free Trial</a>
+                </div>
+
+                <!-- Plan 2 (Partner Plan) -->
+                <div class="p-6 bg-slate-950 border-2 border-violet-500 rounded-2xl flex flex-col justify-between text-left space-y-6 relative">
+                    <span class="absolute top-0 right-6 -translate-y-1/2 px-2.5 py-0.5 rounded-full bg-violet-600 text-white font-bold text-[9px] uppercase tracking-wider shadow">Best Value</span>
+                    
+                    <div class="space-y-3">
+                        <h4 class="font-bold text-violet-400 text-sm">Partner Program</h4>
+                        <div class="flex items-baseline text-white">
+                            <span class="text-2xl font-bold">₹4,999</span>
+                            <span class="text-xs text-slate-500 ml-1">/ month</span>
+                        </div>
+                        <p class="text-[11px] text-slate-400 leading-relaxed">Custom-tailored for coaching academies (like Amigos IAS) and agency workspaces.</p>
+                        <ul class="text-[11px] text-slate-300 space-y-2 pt-2">
+                            <li><i class="fa-solid fa-check text-violet-500 mr-1.5"></i> <strong>Up to 500 calls / month</strong></li>
+                            <li><i class="fa-solid fa-check text-violet-500 mr-1.5"></i> Google Sheets & Supabase Sync</li>
+                            <li><i class="fa-solid fa-check text-violet-500 mr-1.5"></i> <strong>🔥 Hot Leads Filtering Dashboard</strong></li>
+                            <li><i class="fa-solid fa-check text-violet-500 mr-1.5"></i> Twilio Bulk Message Campaigns</li>
+                            <li><i class="fa-solid fa-check text-violet-500 mr-1.5"></i> 30-day timeline retention</li>
+                        </ul>
+                    </div>
+                    <a href="/dashboard" class="w-full py-2.5 rounded-lg text-xs font-bold bg-violet-600 hover:bg-violet-500 text-white transition-all text-center shadow-lg shadow-violet-600/10">Launch Dashboard</a>
+                </div>
+
+                <!-- Plan 3 -->
+                <div class="p-6 bg-slate-900/60 border border-slate-800 rounded-2xl flex flex-col justify-between text-left space-y-6">
+                    <div class="space-y-3">
+                        <h4 class="font-bold text-slate-300 text-sm">Enterprise</h4>
+                        <div class="flex items-baseline text-white">
+                            <span class="text-2xl font-bold">₹14,999</span>
+                            <span class="text-xs text-slate-500 ml-1">/ month</span>
+                        </div>
+                        <p class="text-[11px] text-slate-400 leading-relaxed">For large operations requiring dedicated infrastructure, custom fine-tuning.</p>
+                        <ul class="text-[11px] text-slate-300 space-y-2 pt-2">
+                            <li><i class="fa-solid fa-check text-violet-500 mr-1.5"></i> Unlimited call recordings</li>
+                            <li><i class="fa-solid fa-check text-violet-500 mr-1.5"></i> Dedicated agent voice cloning</li>
+                            <li><i class="fa-solid fa-check text-violet-500 mr-1.5"></i> Custom CRM webhooks</li>
+                            <li><i class="fa-solid fa-check text-violet-500 mr-1.5"></i> 24/7 dedicated account manager</li>
+                        </ul>
+                    </div>
+                    <a href="/dashboard" class="w-full py-2.5 rounded-lg text-xs font-semibold bg-slate-850 hover:bg-slate-800 border border-slate-800 text-slate-200 transition-all text-center">Contact Sales</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="w-full max-w-7xl mx-auto px-6 py-12 border-t border-slate-900 flex flex-col md:flex-row items-center justify-between text-xs text-slate-500 gap-4 mt-auto">
+        <div class="flex items-center gap-2">
+            <span class="font-semibold text-slate-400">Comms AI</span>
+            <span>© 2026. All rights reserved.</span>
+        </div>
+        <div class="flex gap-6">
+            <a href="#" class="hover:text-slate-300 transition-colors">Privacy Policy</a>
+            <a href="#" class="hover:text-slate-300 transition-colors">Terms of Service</a>
+        </div>
+    </footer>
+
+</div>
+{% endblock %}

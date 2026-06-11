@@ -30,6 +30,14 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     };
 
+    const loadAllUnifiedRecords = async () => {
+        const serverRecords = await fetchServerRecordings();
+        const localRecords = getRecords();
+        const localIds = new Set(localRecords.map(r => r.id));
+        const uniqueServerRecords = serverRecords.filter(r => !localIds.has(r.id));
+        return [...localRecords, ...uniqueServerRecords].sort((a, b) => b.timestamp - a.timestamp);
+    };
+
     const updateStats = () => {
         const records = getRecords();
         const el = (id) => document.getElementById(id);
@@ -861,70 +869,462 @@ document.addEventListener("DOMContentLoaded", () => {
                         <span>No client calls processed yet. Click "Process Call" to begin.</span>
                     </div>
                 `;
-                return;
+            } else {
+                recentFeed.innerHTML = "";
+                data.recentCalls.forEach(call => {
+                    const res = call.result;
+                    if (!res) return;
+                    const div = document.createElement("div");
+
+                    const urgencyBorder = res.urgency === "high" ? "border-l-red-500"
+                        : res.urgency === "medium" ? "border-l-amber-400"
+                        : "border-l-emerald-400";
+
+                    const urgencyBadge = res.urgency === "high"
+                        ? "bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400"
+                        : res.urgency === "medium"
+                        ? "bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400"
+                        : "bg-gray-50 text-gray-500 dark:bg-gray-800 dark:text-gray-400";
+
+                    const followUpStatus = res.follow_up_status || (res.follow_up_needed === "Yes" ? "Pending" : "N/A");
+                    let followUpBadge = "";
+                    if (followUpStatus === "Completed") {
+                        followUpBadge = "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50";
+                    } else if (followUpStatus === "Pending") {
+                        followUpBadge = "bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50";
+                    } else {
+                        followUpBadge = "bg-gray-50 text-gray-500 dark:bg-gray-800 dark:text-gray-400 border border-gray-200 dark:border-gray-700";
+                    }
+                    const reminderStr = res.reminder_date ? ` • Reminder: ${res.reminder_date}` : '';
+
+                    div.className = `history-card ${urgencyBorder} border-l-[3px]`;
+                    div.innerHTML = `
+                        <div class="space-y-1.5 flex-grow max-w-2xl text-left">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="badge badge-accent uppercase text-[9px]">${call.industry}</span>
+                                <span class="badge ${urgencyBadge} uppercase text-[9px]">${res.urgency}</span>
+                                <span class="badge ${followUpBadge} uppercase text-[9px]">Follow-up: ${followUpStatus}</span>
+                                <span class="text-[10px] text-gray-400 font-medium">${formatTimestamp(call.timestamp)}${reminderStr}</span>
+                            </div>
+                            <h4 class="font-semibold text-gray-900 text-sm tracking-tight">Call with ${call.caller}</h4>
+                            <p class="text-xs text-gray-500 line-clamp-2 leading-relaxed">${res.summary}</p>
+                        </div>
+
+                        <div class="flex items-center gap-4 flex-shrink-0 self-end md:self-auto">
+                            <div class="text-right hidden sm:block">
+                                <span class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Actions</span>
+                                <span class="text-xs font-semibold text-gray-800">${res.tasks ? res.tasks.length : 0}</span>
+                            </div>
+                            <div class="w-7 h-7 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center text-gray-400 dark:bg-gray-800 dark:border-gray-700">
+                                <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                            </div>
+                        </div>
+                    `;
+
+                    div.addEventListener("click", () => {
+                        window.location.href = `/results/${call.id}`;
+                    });
+
+                    recentFeed.appendChild(div);
+                });
             }
 
-            recentFeed.innerHTML = "";
-            data.recentCalls.forEach(call => {
-                const res = call.result;
-                if (!res) return;
-                const div = document.createElement("div");
+            // Populate Hot Leads feed
+            const hotLeadsFeed = document.getElementById("home-hot-leads-feed");
+            if (hotLeadsFeed) {
+                const allRecords = await loadAllUnifiedRecords();
+                const hotLeads = allRecords.filter(r => r.result && r.result.urgency === 'high');
 
-                const urgencyBorder = res.urgency === "high" ? "border-l-red-500"
-                    : res.urgency === "medium" ? "border-l-amber-400"
-                    : "border-l-emerald-400";
-
-                const urgencyBadge = res.urgency === "high"
-                    ? "bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400"
-                    : res.urgency === "medium"
-                    ? "bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400"
-                    : "bg-gray-50 text-gray-500 dark:bg-gray-800 dark:text-gray-400";
-
-                const followUpStatus = res.follow_up_status || (res.follow_up_needed === "Yes" ? "Pending" : "N/A");
-                let followUpBadge = "";
-                if (followUpStatus === "Completed") {
-                    followUpBadge = "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50";
-                } else if (followUpStatus === "Pending") {
-                    followUpBadge = "bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50";
+                if (hotLeads.length === 0) {
+                    hotLeadsFeed.innerHTML = `
+                        <div class="p-4 bg-gray-50/50 border border-gray-150 rounded-xl text-center text-gray-400 text-[10px] flex items-center justify-center gap-1.5 py-6">
+                            <i class="fa-solid fa-circle-check text-green-500"></i>
+                            <span>No active high-urgency alerts. All loops are closed!</span>
+                        </div>
+                    `;
                 } else {
-                    followUpBadge = "bg-gray-50 text-gray-500 dark:bg-gray-800 dark:text-gray-400 border border-gray-200 dark:border-gray-700";
+                    hotLeadsFeed.innerHTML = "";
+                    hotLeads.forEach(call => {
+                        const res = call.result;
+                        const div = document.createElement("div");
+                        const followUpStatus = res.follow_up_status || (res.follow_up_needed === "Yes" ? "Pending" : "N/A");
+                        
+                        let followUpBadge = "";
+                        if (followUpStatus === "Completed") {
+                            followUpBadge = "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50";
+                        } else if (followUpStatus === "Pending") {
+                            followUpBadge = "bg-blue-50 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400 border border-blue-200 dark:border-blue-800/50 animate-pulse";
+                        } else {
+                            followUpBadge = "bg-gray-50 text-gray-500 dark:bg-gray-800 dark:text-gray-400 border border-gray-200 dark:border-gray-700";
+                        }
+                        const reminderStr = res.reminder_date ? ` • Reminder: ${res.reminder_date}` : '';
+
+                        div.className = `history-card border-l-[3px] border-l-red-500`;
+                        div.innerHTML = `
+                            <div class="space-y-1.5 flex-grow max-w-2xl text-left">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <span class="badge badge-accent uppercase text-[9px]">${call.industry}</span>
+                                    <span class="badge bg-red-50 text-red-600 dark:bg-red-950/30 dark:text-red-400 uppercase text-[9px]">🔴 High Urgency</span>
+                                    <span class="badge ${followUpBadge} uppercase text-[9px]">Follow-up: ${followUpStatus}</span>
+                                    <span class="text-[10px] text-gray-400 font-medium">${formatTimestamp(call.timestamp)}${reminderStr}</span>
+                                </div>
+                                <h4 class="font-semibold text-gray-900 text-sm tracking-tight">Call with ${call.caller}</h4>
+                                <p class="text-xs text-gray-500 line-clamp-2 leading-relaxed">${res.summary}</p>
+                            </div>
+
+                            <div class="flex items-center gap-4 flex-shrink-0 self-end md:self-auto">
+                                <div class="text-right hidden sm:block">
+                                    <span class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Actions</span>
+                                    <span class="text-xs font-semibold text-gray-800">${res.tasks ? res.tasks.length : 0}</span>
+                                </div>
+                                <div class="w-7 h-7 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center text-gray-400 dark:bg-gray-800 dark:border-gray-700">
+                                    <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                                </div>
+                            </div>
+                        `;
+
+                        div.addEventListener("click", () => {
+                            window.location.href = `/results/${call.id}`;
+                        });
+                        hotLeadsFeed.appendChild(div);
+                    });
                 }
-                const reminderStr = res.reminder_date ? ` • Reminder: ${res.reminder_date}` : '';
-
-                div.className = `history-card ${urgencyBorder} border-l-[3px]`;
-                div.innerHTML = `
-                    <div class="space-y-1.5 flex-grow max-w-2xl">
-                        <div class="flex flex-wrap items-center gap-2">
-                            <span class="badge badge-accent uppercase text-[9px]">${call.industry}</span>
-                            <span class="badge ${urgencyBadge} uppercase text-[9px]">${res.urgency}</span>
-                            <span class="badge ${followUpBadge} uppercase text-[9px]">Follow-up: ${followUpStatus}</span>
-                            <span class="text-[10px] text-gray-400 font-medium">${formatTimestamp(call.timestamp)}${reminderStr}</span>
-                        </div>
-                        <h4 class="font-semibold text-gray-900 text-sm tracking-tight">Call with ${call.caller}</h4>
-                        <p class="text-xs text-gray-500 line-clamp-2 leading-relaxed">${res.summary}</p>
-                    </div>
-
-                    <div class="flex items-center gap-4 flex-shrink-0 self-end md:self-auto">
-                        <div class="text-right hidden sm:block">
-                            <span class="block text-[10px] font-bold text-gray-400 uppercase tracking-wider">Actions</span>
-                            <span class="text-xs font-semibold text-gray-800">${res.tasks ? res.tasks.length : 0}</span>
-                        </div>
-                        <div class="w-7 h-7 rounded-lg bg-gray-50 border border-gray-200 flex items-center justify-center text-gray-400 dark:bg-gray-800 dark:border-gray-700">
-                            <i class="fa-solid fa-chevron-right text-[10px]"></i>
-                        </div>
-                    </div>
-                `;
-
-                div.addEventListener("click", () => {
-                    window.location.href = `/results/${call.id}`;
-                });
-
-                recentFeed.appendChild(div);
-            });
+            }
 
         } catch (err) {
             console.error("Dashboard stats loading failed", err);
             recentFeed.innerHTML = `<div class="text-center py-6 text-red-500 text-xs font-semibold">Failed to load recent memories.</div>`;
+        }
+    };
+
+    // ---- SCREEN 4: CAMPAIGNS PAGE ----
+    const initCampaignsPage = async () => {
+        const recipientsList = document.getElementById("recipients-list");
+        if (!recipientsList) return;
+
+        const selectAllBtn = document.getElementById("select-all-btn");
+        const selectHotBtn = document.getElementById("select-hot-btn");
+        const clearSelectBtn = document.getElementById("clear-select-btn");
+        const selectedCountLabel = document.getElementById("selected-count");
+        const campaignMessage = document.getElementById("campaign-message");
+        const templateSelect = document.getElementById("template-select");
+        const sendCampaignBtn = document.getElementById("send-campaign-btn");
+        const statusDiv = document.getElementById("campaign-status");
+
+        const smsBtn = document.getElementById("channel-sms");
+        const waBtn = document.getElementById("channel-whatsapp");
+
+        let activeChannel = "sms"; // Default
+
+        // Set up channel toggles
+        if (smsBtn && waBtn) {
+            smsBtn.addEventListener("click", () => {
+                activeChannel = "sms";
+                smsBtn.className = "px-3 py-2 rounded-lg text-xs font-semibold border border-violet-500 bg-violet-50 text-violet-700 flex items-center justify-center gap-1.5 transition-all";
+                waBtn.className = "px-3 py-2 rounded-lg text-xs font-semibold border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 flex items-center justify-center gap-1.5 transition-all";
+            });
+            waBtn.addEventListener("click", () => {
+                activeChannel = "whatsapp";
+                waBtn.className = "px-3 py-2 rounded-lg text-xs font-semibold border border-emerald-500 bg-emerald-50 text-emerald-700 flex items-center justify-center gap-1.5 transition-all";
+                smsBtn.className = "px-3 py-2 rounded-lg text-xs font-semibold border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 flex items-center justify-center gap-1.5 transition-all";
+            });
+        }
+
+        const showCampaignStatus = (message, isSuccess) => {
+            if (!statusDiv) return;
+            statusDiv.textContent = message;
+            statusDiv.className = `text-xs text-center py-2.5 rounded-lg font-semibold ${
+                isSuccess
+                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                    : "bg-red-50 text-red-600 border border-red-200"
+            }`;
+            statusDiv.classList.remove("hidden");
+            setTimeout(() => statusDiv.classList.add("hidden"), 8000);
+        };
+
+        // Render recipient table
+        const records = await loadAllUnifiedRecords();
+        
+        // Group uniquely by phone number
+        const uniqueContactsMap = new Map();
+        records.forEach(r => {
+            const res = r.result;
+            if (!res) return;
+            
+            // Clean up phone number to extract a clean string
+            const rawPhone = r.caller || res.caller_name || 'Unknown';
+            if (rawPhone.toLowerCase().includes('unknown') || rawPhone.toLowerCase().includes('manual')) return;
+            
+            // If already added, skip or update to highest urgency
+            const existing = uniqueContactsMap.get(rawPhone);
+            if (existing) {
+                if (res.urgency === 'high') {
+                    existing.urgency = 'high';
+                }
+                existing.task_count += (res.tasks ? res.tasks.length : 0);
+            } else {
+                uniqueContactsMap.set(rawPhone, {
+                    name: res.caller_name || 'Prospect',
+                    phone: rawPhone,
+                    industry: r.industry,
+                    urgency: res.urgency,
+                    task_count: res.tasks ? res.tasks.length : 0
+                });
+            }
+        });
+
+        const contacts = Array.from(uniqueContactsMap.values());
+
+        if (contacts.length === 0) {
+            recipientsList.innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-center py-8 text-gray-400 text-xs">
+                        No valid contacts with phone numbers found in the database.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        recipientsList.innerHTML = "";
+        contacts.forEach((contact, idx) => {
+            const tr = document.createElement("tr");
+            tr.className = "hover:bg-gray-50/50 transition-colors border-b border-gray-50";
+
+            const urgencyBadge = contact.urgency === "high"
+                ? `<span class="badge bg-red-50 text-red-600 uppercase text-[8px] font-bold"><i class="fa-solid fa-fire text-red-500"></i> Hot Lead</span>`
+                : `<span class="badge bg-gray-50 text-gray-400 uppercase text-[8px]">Standard</span>`;
+
+            tr.innerHTML = `
+                <td class="py-3.5 px-2">
+                    <input type="checkbox" value="${contact.phone}" data-urgency="${contact.urgency}" class="recipient-checkbox h-4 w-4 rounded border-gray-300 text-violet-600 focus:ring-violet-500 accent-violet-600">
+                </td>
+                <td class="py-3.5 px-3 font-semibold text-gray-950">${contact.name}</td>
+                <td class="py-3.5 px-3 font-mono">${contact.phone}</td>
+                <td class="py-3.5 px-3 uppercase text-[10px] font-bold text-gray-400">${contact.industry}</td>
+                <td class="py-3.5 px-3">${urgencyBadge}</td>
+                <td class="py-3.5 px-3 text-right font-medium text-gray-500">${contact.task_count} pending</td>
+            `;
+            recipientsList.appendChild(tr);
+        });
+
+        const checkboxes = document.querySelectorAll(".recipient-checkbox");
+
+        const updateSelectedCount = () => {
+            const checkedCount = document.querySelectorAll(".recipient-checkbox:checked").length;
+            if (selectedCountLabel) selectedCountLabel.textContent = checkedCount;
+        };
+
+        checkboxes.forEach(cb => {
+            cb.addEventListener("change", updateSelectedCount);
+        });
+
+        // Bulk Selection Button Event Listeners
+        if (selectAllBtn) {
+            selectAllBtn.addEventListener("click", () => {
+                checkboxes.forEach(cb => cb.checked = true);
+                updateSelectedCount();
+            });
+        }
+
+        if (selectHotBtn) {
+            selectHotBtn.addEventListener("click", () => {
+                checkboxes.forEach(cb => {
+                    const urgency = cb.getAttribute("data-urgency");
+                    cb.checked = (urgency === "high");
+                });
+                updateSelectedCount();
+            });
+        }
+
+        if (clearSelectBtn) {
+            clearSelectBtn.addEventListener("click", () => {
+                checkboxes.forEach(cb => cb.checked = false);
+                updateSelectedCount();
+            });
+        }
+
+        // Load templates dynamically into message composer
+        if (templateSelect && campaignMessage) {
+            templateSelect.addEventListener("change", () => {
+                const val = templateSelect.value;
+                const templates = {
+                    ias_demo: "Hi! Following up on your inquiry. We've reserved a seat for you in our upcoming free IAS Prep Demo Class this Saturday at 10:00 AM. Please reach our center 10 mins early. See you there! - Amigos IAS",
+                    pricing_installment: "Hello, regarding your coaching registration details: we offer flexible installment payment options (3 parts across 3 months) to make enrollment easier. Let us know if you want us to send the registration form via email. - Support Desk",
+                    followup_general: "Hi, thank you for contacting us. I am following up on our recent conversation to check if you had any questions regarding the service details. Let me know if you would like to schedule a quick call today. - Operations Team"
+                };
+                campaignMessage.value = templates[val] || "";
+            });
+        }
+
+        // Send campaign broadcast
+        if (sendCampaignBtn) {
+            sendCampaignBtn.addEventListener("click", async () => {
+                const checked = Array.from(document.querySelectorAll(".recipient-checkbox:checked")).map(cb => cb.value);
+                const msg = campaignMessage ? campaignMessage.value.trim() : "";
+
+                if (checked.length === 0) {
+                    showCampaignStatus("Please select at least one target recipient checkbox.", false);
+                    return;
+                }
+                if (!msg) {
+                    showCampaignStatus("Message content cannot be empty. Please compose a message.", false);
+                    return;
+                }
+
+                if (!confirm(`You are about to send a bulk campaign to ${checked.length} recipient(s) via Twilio ${activeChannel === 'sms' ? 'SMS' : 'WhatsApp'}.\n\nProceed?`)) {
+                    return;
+                }
+
+                const origHTML = sendCampaignBtn.innerHTML;
+                sendCampaignBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Dispatching Broadcast...`;
+                sendCampaignBtn.disabled = true;
+
+                try {
+                    const response = await fetch("/api/bulk-message", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ numbers: checked, message: msg, channel: activeChannel })
+                    });
+                    const data = await response.json();
+
+                    if (data.success) {
+                        const successes = data.results.filter(r => r.success).length;
+                        const failures = data.results.filter(r => !r.success).length;
+                        showCampaignStatus(`✅ Campaign sent! Successful: ${successes} | Failed: ${failures}`, true);
+                    } else {
+                        showCampaignStatus(`❌ Error sending campaign: ${data.error}`, false);
+                    }
+                } catch (err) {
+                    showCampaignStatus(`❌ Network error: ${err.message}`, false);
+                } finally {
+                    sendCampaignBtn.innerHTML = origHTML;
+                    sendCampaignBtn.disabled = false;
+                }
+            });
+        }
+    };
+
+    // ---- SCREEN 5: SYNC PAGE ----
+    const initSyncPage = async () => {
+        const triggerBtn = document.getElementById("trigger-sync-btn");
+        const statusDiv = document.getElementById("trigger-status");
+
+        const sheetsBadge = document.getElementById("google-sheets-badge");
+        const sheetIdLabel = document.getElementById("sheet-id-label");
+        const sheetLink = document.getElementById("sheet-link");
+
+        const twilioBadge = document.getElementById("twilio-badge");
+        const twilioPhoneLabel = document.getElementById("twilio-phone-label");
+        const twilioWhatsappLabel = document.getElementById("twilio-whatsapp-label");
+
+        const supabaseBadge = document.getElementById("supabase-badge");
+        const dbCountLabel = document.getElementById("db-count-label");
+        const dbPendingLabel = document.getElementById("db-pending-label");
+
+        if (!triggerBtn && !sheetsBadge) return; // Not on sync page
+
+        const showSyncResult = (message, isSuccess) => {
+            if (!statusDiv) return;
+            statusDiv.textContent = message;
+            statusDiv.className = `text-xs text-center py-2.5 rounded-lg font-semibold ${
+                isSuccess
+                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                    : "bg-red-50 text-red-600 border border-red-200"
+            }`;
+            statusDiv.classList.remove("hidden");
+            setTimeout(() => statusDiv.classList.add("hidden"), 8000);
+        };
+
+        const loadSyncStatus = async () => {
+            try {
+                const res = await fetch('/api/sync-status');
+                if (!res.ok) throw new Error("Status endpoint returned error");
+                const data = await res.json();
+
+                // 1. Google Sheets status
+                if (data.google_sheets) {
+                    const sheetId = data.google_sheets.sheet_id;
+                    if (data.google_sheets.connected) {
+                        sheetsBadge.textContent = "🟢 Active Connection";
+                        sheetsBadge.className = "badge badge-green uppercase text-[9px]";
+                    } else {
+                        sheetsBadge.textContent = "🔴 Auth Failed";
+                        sheetsBadge.className = "badge badge-red uppercase text-[9px]";
+                    }
+                    if (sheetIdLabel) {
+                        sheetIdLabel.textContent = sheetId;
+                    }
+                    if (sheetLink) {
+                        sheetLink.href = `https://docs.google.com/spreadsheets/d/${sheetId}/edit`;
+                    }
+                }
+
+                // 2. Twilio status
+                if (data.twilio) {
+                    if (data.twilio.configured) {
+                        twilioBadge.textContent = "🟢 Active";
+                        twilioBadge.className = "badge badge-green uppercase text-[9px]";
+                    } else {
+                        twilioBadge.textContent = "🔴 Unconfigured";
+                        twilioBadge.className = "badge badge-red uppercase text-[9px]";
+                    }
+                    if (twilioPhoneLabel) {
+                        twilioPhoneLabel.textContent = `Phone: ${data.twilio.phone || 'Not Configured'}`;
+                    }
+                    if (twilioWhatsappLabel) {
+                        twilioWhatsappLabel.textContent = `WA: whatsapp:${data.twilio.whatsapp || 'Not Configured'}`;
+                    }
+                }
+
+                // 3. Supabase status
+                if (data.supabase) {
+                    if (data.supabase.configured) {
+                        supabaseBadge.textContent = "🟢 Online";
+                        supabaseBadge.className = "badge badge-green uppercase text-[9px]";
+                    } else {
+                        supabaseBadge.textContent = "🔴 Offline";
+                        supabaseBadge.className = "badge badge-red uppercase text-[9px]";
+                    }
+                    if (dbCountLabel) {
+                        dbCountLabel.textContent = `Records Store: ${data.supabase.record_count || 0} calls`;
+                    }
+                    if (dbPendingLabel) {
+                        dbPendingLabel.textContent = `Pending Follow-ups: ${data.supabase.pending_count || 0} active`;
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to load sync status metrics", err);
+            }
+        };
+
+        // Initial Load
+        await loadSyncStatus();
+
+        // Manual Trigger Sync Button
+        if (triggerBtn) {
+            triggerBtn.addEventListener("click", async () => {
+                const origHTML = triggerBtn.innerHTML;
+                triggerBtn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Executing Cron Scheduler...`;
+                triggerBtn.disabled = true;
+
+                try {
+                    const response = await fetch("/api/sync-trigger", { method: "POST" });
+                    const result = await response.json();
+
+                    if (result.success) {
+                        showSyncResult("✅ Sync job run successfully. Checked spreadsheet and sent due follow-ups.", true);
+                        await loadSyncStatus(); // Reload numbers
+                    } else {
+                        showSyncResult(`❌ Sync job failed: ${result.error}`, false);
+                    }
+                } catch (err) {
+                    showSyncResult(`❌ Network error executing sync job: ${err.message}`, false);
+                } finally {
+                    triggerBtn.innerHTML = origHTML;
+                    triggerBtn.disabled = false;
+                }
+            });
         }
     };
 
@@ -970,5 +1370,7 @@ document.addEventListener("DOMContentLoaded", () => {
     initUploadPage();
     initResultsPage();
     initHistoryPage();
+    initCampaignsPage();
+    initSyncPage();
     initThemeToggle();
 });
