@@ -99,19 +99,14 @@
             </div>
         </div>
     </aside>
+    {% endif %}
 
     <!-- Main Content -->
-    <main class="flex-grow flex flex-col h-[calc(100vh-53px)] md:h-screen overflow-y-auto bg-[#f7f8fa]">
-        <div class="flex-grow p-5 md:p-8 max-w-6xl w-full mx-auto pb-16">
+    <main class="flex-grow flex flex-col {% if request.path != '/' %}h-[calc(100vh-53px)] md:h-screen overflow-y-auto bg-[#f7f8fa]{% else %}overflow-y-auto w-full bg-[#f8fafc]{% endif %}">
+        <div class="{% if request.path != '/' %}flex-grow p-5 md:p-8 max-w-6xl w-full mx-auto pb-16{% else %}w-full{% endif %}">
             {% block content %}{% endblock %}
         </div>
     </main>
-    {% else %}
-    <!-- Full-screen Content for Landing Page -->
-    <main class="flex-grow flex flex-col overflow-y-auto w-full bg-[#f8fafc]">
-        {% block content %}{% endblock %}
-    </main>
-    {% endif %}
 
     <!-- Scripts -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
