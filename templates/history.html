@@ -6,8 +6,8 @@
     <!-- Header -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-            <h2 class="text-2xl font-bold text-gray-900 tracking-tight">Customer Memory Timeline</h2>
-            <p class="text-sm text-gray-500 mt-1">Audit log of all processed customer interactions, tasks, and follow-ups.</p>
+            <h2 class="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">Customer Memory Timeline</h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Audit log of all processed customer interactions, tasks, and follow-ups.</p>
         </div>
         <a href="/process" class="btn-primary px-4 py-2.5 rounded-lg text-xs self-start md:self-auto">
             <i class="fa-solid fa-plus"></i> New Call
@@ -17,17 +17,17 @@
     <!-- KPI Stats -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div class="stat-card">
-            <div class="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center text-violet-500 text-base">
+            <div class="w-10 h-10 rounded-xl bg-violet-50 text-violet-500 dark:bg-violet-950/40 dark:text-violet-400 flex items-center justify-center text-base">
                 <i class="fa-solid fa-phone"></i>
             </div>
             <div>
                 <span class="block text-xs font-bold text-gray-400 uppercase tracking-wider">Processed Calls</span>
-                <span id="stat-total-calls" class="text-xl font-bold text-gray-900">0</span>
+                <span id="stat-total-calls" class="text-xl font-bold text-gray-900 dark:text-white">0</span>
             </div>
         </div>
 
         <div class="stat-card">
-            <div class="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center text-red-500 text-base">
+            <div class="w-10 h-10 rounded-xl bg-red-50 text-red-500 dark:bg-red-950/40 dark:text-red-400 flex items-center justify-center text-base">
                 <i class="fa-solid fa-fire"></i>
             </div>
             <div>
@@ -37,7 +37,7 @@
         </div>
 
         <div class="stat-card">
-            <div class="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-500 text-base">
+            <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-500 dark:bg-emerald-950/40 dark:text-emerald-400 flex items-center justify-center text-base">
                 <i class="fa-solid fa-clipboard-check"></i>
             </div>
             <div>
@@ -72,11 +72,11 @@
 
         <!-- Empty State -->
         <div id="empty-state" class="hidden flex flex-col items-center justify-center text-center py-16 space-y-4">
-            <div class="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center text-gray-300 text-2xl">
+            <div class="w-14 h-14 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-300 dark:text-gray-600 text-2xl">
                 <i class="fa-solid fa-folder-open"></i>
             </div>
             <div>
-                <h4 class="text-sm font-semibold text-gray-700">No calls processed yet</h4>
+                <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">No calls processed yet</h4>
                 <p class="text-xs text-gray-400 mt-1 max-w-xs mx-auto">Upload audio or paste transcripts to generate intelligence logs.</p>
             </div>
             <a href="/process" class="btn-primary px-5 py-2.5 rounded-lg text-xs">
@@ -86,4 +86,5 @@
     </div>
 
 </div>
+
 {% endblock %}

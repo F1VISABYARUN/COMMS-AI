@@ -20,3 +20,7 @@ __pycache__/
 
 # Node & Build
 node_modules/
+
+# Agent runtime directories
+*agents*
+*ORIGINAL_REQUEST*

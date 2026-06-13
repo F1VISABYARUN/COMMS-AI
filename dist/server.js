@@ -74,8 +74,8 @@ catch (error) {
 }
 // --- Middleware Configuration ---
 app.use((0, cors_1.default)());
-app.use(express_1.default.json());
-app.use(express_1.default.urlencoded({ extended: true }));
+app.use(express_1.default.json({ limit: '50mb' }));
+app.use(express_1.default.urlencoded({ limit: '50mb', extended: true }));
 // Serve static files (under /static prefix to match Flask templates)
 app.use('/static', express_1.default.static(path.join(process.cwd(), 'static')));
 // Set up Nunjucks template engine
@@ -300,11 +300,42 @@ app.get('/api/dashboard-stats', async (req, res) => {
                 }
             }
         });
+        // Calculate last 7 days (from 6 days ago to today) in UTC
+        const weeklyTrend = [];
+        const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const MS_PER_DAY = 24 * 60 * 60 * 1000;
+        const today = new Date();
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date(today.getTime() - i * MS_PER_DAY);
+            const dateStr = d.toISOString().split('T')[0]; // YYYY-MM-DD
+            const dayStr = daysOfWeek[d.getUTCDay()];
+            weeklyTrend.push({ date: dateStr, day: dayStr, count: 0 });
+        }
+        // Aggregate recording counts into dates
+        recordings?.forEach(r => {
+            if (r.timestamp) {
+                try {
+                    let ts = r.timestamp;
+                    if (typeof ts === 'string' && /^\d+$/.test(ts)) {
+                        ts = parseInt(ts, 10);
+                    }
+                    const rDateStr = new Date(ts).toISOString().split('T')[0];
+                    const trendDay = weeklyTrend.find(t => t.date === rDateStr);
+                    if (trendDay) {
+                        trendDay.count++;
+                    }
+                }
+                catch (e) {
+                    console.warn('[WARN] Invalid timestamp in recording:', r.timestamp, e);
+                }
+            }
+        });
         res.json({
             totalCalls,
             urgentCalls,
             totalTasks,
-            recentCalls: recordings?.slice(0, 3) || []
+            recentCalls: recordings?.slice(0, 3) || [],
+            weeklyTrend
         });
     }
     catch (err) {
@@ -588,17 +619,28 @@ app.post('/api/bulk-message', async (req, res) => {
 // ============================================================
 //  API: DIAGNOSTIC SYNC STATUS & TRIGGER
 // ============================================================
+let cachedSheetsConnectionOk = null;
+let cachedSheetsConnectionTime = 0;
+const SHEETS_CACHE_DURATION_MS = 10 * 60 * 1000; // 10 minutes
 app.get('/api/sync-status', async (req, res) => {
     const twilioConfigured = twilioClient !== null;
     const supabaseUrlConfigured = !!process.env.SUPABASE_URL;
     const googleEmailConfigured = !!process.env.GOOGLE_CLIENT_EMAIL;
     const SHEET_ID = "1GEP1JtBcybnpVfDmeEr58zEhKMM1CgvfQP15wgljBJs";
     let sheetsConnectionOk = false;
-    try {
-        sheetsConnectionOk = await (0, googleSheetsManager_1.testSheetsConnection)(SHEET_ID);
+    const now = Date.now();
+    if (cachedSheetsConnectionOk !== null && (now - cachedSheetsConnectionTime < SHEETS_CACHE_DURATION_MS)) {
+        sheetsConnectionOk = cachedSheetsConnectionOk;
     }
-    catch (err) {
-        console.warn(`[WARN] Failed to test sheets connection:`, err);
+    else {
+        try {
+            sheetsConnectionOk = await (0, googleSheetsManager_1.testSheetsConnection)(SHEET_ID);
+            cachedSheetsConnectionOk = sheetsConnectionOk;
+            cachedSheetsConnectionTime = now;
+        }
+        catch (err) {
+            console.warn(`[WARN] Failed to test sheets connection:`, err);
+        }
     }
     let recordCount = 0;
     let pendingRemindersCount = 0;
@@ -648,6 +690,77 @@ app.post('/api/sync-trigger', async (req, res) => {
         console.error(`[ERR] Manual sync trigger failed:`, err);
         res.status(500).json({ success: false, error: err.message });
     }
+});
+// ============================================================
+//  Fonio-Style Outbound Call Demo
+// ============================================================
+app.post('/api/trigger-demo-call', async (req, res) => {
+    if (!twilioClient) {
+        res.status(500).json({ success: false, error: "Twilio is not configured." });
+        return;
+    }
+    if (!TWILIO_PHONE) {
+        res.status(500).json({ success: false, error: "TWILIO_PHONE_NUMBER not set in .env" });
+        return;
+    }
+    const data = req.body || {};
+    const phone = (data.phone || "").trim();
+    if (!phone) {
+        res.status(400).json({ success: false, error: "Phone number is required." });
+        return;
+    }
+    try {
+        console.log(`[DEMO] Triggering Fonio-style live AI demo call to: ${phone}`);
+        const call = await twilioClient.calls.create({
+            to: phone,
+            from: TWILIO_PHONE,
+            url: `${BASE_URL}/twilio/demo-bot-connect?phone=${encodeURIComponent(phone)}`,
+            record: true,
+            recordingStatusCallback: `${BASE_URL}/twilio/recording-status`,
+            recordingStatusCallbackEvent: ['completed']
+        });
+        res.json({ success: true, call_sid: call.sid, status: call.status });
+    }
+    catch (error) {
+        console.error(`[ERR] Demo call failed to initiate:`, error);
+        res.status(400).json({ success: false, error: error.message });
+    }
+});
+app.post('/twilio/demo-bot-connect', (req, res) => {
+    const phone = req.query.phone || "";
+    const response = new twilio_1.default.twiml.VoiceResponse();
+    response.say({ voice: 'Polly.Aditi' }, "Hello! This is the Heleo AI virtual receptionist demonstrating our platform. " +
+        "Please tell me your name, and briefly what business or industry you are testing our service for today.");
+    response.gather({
+        input: ['speech'],
+        action: `${BASE_URL}/twilio/demo-bot-gather?phone=${encodeURIComponent(phone)}`,
+        speechTimeout: 'auto',
+        timeout: 5
+    });
+    // Fallback if they stay silent
+    response.say({ voice: 'Polly.Aditi' }, "We didn't hear you. You can hang up to complete the demo. Goodbye.");
+    response.hangup();
+    res.type('text/xml');
+    res.send(response.toString());
+});
+app.post('/twilio/demo-bot-gather', (req, res) => {
+    const phone = req.query.phone || "";
+    const speechResult = req.body.SpeechResult || "";
+    console.log(`[DEMO] Gathered user input: "${speechResult}" from ${phone}`);
+    const response = new twilio_1.default.twiml.VoiceResponse();
+    if (speechResult) {
+        response.say({ voice: 'Polly.Aditi' }, `Perfect, thank you! I've recorded: ${speechResult}. ` +
+            "The second you hang up, Heleo AI will analyze our conversation, " +
+            "sync the summary to our dashboard, and trigger an automated follow-up. " +
+            "Thank you for trying Heleo AI, have a wonderful day! Goodbye.");
+    }
+    else {
+        response.say({ voice: 'Polly.Aditi' }, "Thank you for testing Heleo AI! We are wrapping up the demo now. " +
+            "A summary of this call will be logged, and a follow-up will be dispatched. Goodbye.");
+    }
+    response.hangup();
+    res.type('text/xml');
+    res.send(response.toString());
 });
 // ============================================================
 //  TWILIO: OUTBOUND CALL (Click-to-Call Bridge)
@@ -1003,7 +1116,7 @@ app.post('/api/recordings/:id', async (req, res) => {
 // ============================================================
 const server = app.listen(port, () => {
     console.log("\n" + "=".repeat(60));
-    console.log("  COMMS AI — Server Starting");
+    console.log("  HELEO AI — Server Starting");
     console.log("=".repeat(60));
     if (twilioClient) {
         console.log(`  [SMS] SMS From:      ${TWILIO_PHONE}`);

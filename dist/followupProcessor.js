@@ -59,7 +59,7 @@ async function sendEmailNotification(toEmail, caller, summary, actionItems, isCu
             `Action Items: ${actionItems}\n\n` +
             `This reminder has been processed and marked as Completed in Google Sheets.`;
     const mailOptions = {
-        from: `"Comms AI Platform" <${SMTP_USER}>`,
+        from: `"Heleo AI Platform" <${SMTP_USER}>`,
         to: toEmail,
         subject: subject,
         text: text

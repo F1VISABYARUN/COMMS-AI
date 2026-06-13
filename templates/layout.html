@@ -3,35 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comms AI | Call Intelligence Platform</title>
+    <title>Heleo AI | Call Intelligence Platform</title>
     <meta name="description" content="Turn every call into structured CRM actions, tasks, and follow-up drafts using AI.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        tailwind.config = { darkMode: ['class', '.dark-mode'] }
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        outfit: ['Outfit', 'sans-serif']
+                    }
+                }
+            }
+        }
     </script>
+    <script>
+        if (localStorage.getItem('theme') === 'dark') {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    </script>
+    <!-- Global Style Rules -->
+    <style>
+        h1, h2, h3, h4, h5, h6, .font-outfit {
+            font-family: 'Outfit', sans-serif !important;
+        }
+    </style>
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Custom Styles -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body class="h-full min-h-screen flex flex-col md:flex-row">
-    <script>
-        if (localStorage.getItem('theme') === 'dark') {
-            document.body.classList.add('dark-mode');
-        }
-    </script>
 
     {% if request.path != '/' %}
     <!-- Mobile Nav Header -->
-    <header class="md:hidden bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between z-50">
+    <header class="md:hidden bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between z-50 dark:bg-gray-900 dark:border-gray-800">
         <div class="flex items-center gap-2.5">
             <div class="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center shadow-sm">
-                <i class="fa-solid fa-bolt text-white text-xs"></i>
+                <i class="fa-solid fa-sun text-white text-xs"></i>
             </div>
-            <span class="font-bold text-gray-900 text-sm tracking-tight">Comms AI</span>
+            <span class="font-bold text-gray-900 text-sm tracking-tight dark:text-white">Heleo AI</span>
         </div>
-        <button id="mobile-menu-toggle" class="text-gray-500 text-xl hover:text-gray-900 transition-colors">
+        <button id="mobile-menu-toggle" class="text-gray-500 text-xl hover:text-gray-900 transition-all duration-150 hover:scale-110 active:scale-90 dark:text-gray-400 dark:hover:text-white">
             <i class="fa-solid fa-bars"></i>
         </button>
     </header>
@@ -42,10 +64,10 @@
             <!-- Logo -->
             <div class="p-5 pb-4 hidden md:flex items-center gap-3">
                 <div class="w-9 h-9 rounded-xl bg-violet-600 flex items-center justify-center shadow-sm shadow-violet-200">
-                    <i class="fa-solid fa-bolt text-white text-sm"></i>
+                    <i class="fa-solid fa-sun text-white text-sm"></i>
                 </div>
                 <div>
-                    <h1 class="font-bold text-gray-900 text-[15px] leading-none tracking-tight">Comms AI</h1>
+                    <h1 class="font-bold text-gray-900 text-[15px] leading-none tracking-tight dark:text-white">Heleo AI</h1>
                     <span class="text-[10px] text-gray-400 font-medium tracking-wide">Call Intelligence</span>
                 </div>
             </div>
@@ -79,7 +101,7 @@
         <div class="border-t border-gray-100">
             <!-- Theme Toggle -->
             <div class="p-4 pb-2">
-                <button id="theme-toggle-btn" class="w-full flex items-center justify-between px-3 py-2 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-900 text-xs font-semibold transition-all focus:outline-none shadow-sm">
+                <button id="theme-toggle-btn" class="w-full flex items-center justify-between px-3 py-2 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-900 text-xs font-semibold transition-all duration-150 hover:scale-[1.02] hover:-translate-y-0.5 hover:shadow-md hover:shadow-violet-500/5 active:scale-95 focus:outline-none shadow-sm dark:bg-gray-900 dark:border-gray-800 dark:hover:bg-gray-800 dark:text-gray-400 dark:hover:text-white">
                     <span class="flex items-center gap-2">
                         <i class="fa-solid fa-moon text-violet-500" id="theme-toggle-icon"></i>
                         <span id="theme-toggle-text">Dark Mode</span>
@@ -91,12 +113,12 @@
             <!-- Profile -->
             <div class="p-4 pt-2">
                 <div class="flex items-center gap-3 px-1">
-                    <div class="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center text-violet-600 font-semibold text-[11px]">
-                        CO
+                    <div class="w-8 h-8 rounded-full bg-violet-100 dark:bg-violet-950/40 flex items-center justify-center text-violet-600 dark:text-violet-400 font-bold text-[11px]">
+                        AD
                     </div>
                     <div>
-                        <div class="text-xs font-semibold text-gray-800">Co-Founder Demo</div>
-                        <div class="text-[10px] text-gray-400">Targeting US Market</div>
+                        <div class="text-xs font-semibold text-gray-800 dark:text-white">Admin Dashboard</div>
+                        <div class="text-[10px] text-gray-400 dark:text-gray-500">Pipeline Configured</div>
                     </div>
                 </div>
             </div>
@@ -105,11 +127,98 @@
     {% endif %}
 
     <!-- Main Content -->
-    <main class="flex-grow flex flex-col overflow-y-auto {% if request.path != '/' %}h-[calc(100vh-53px)] md:h-screen bg-[#f7f8fa]{% else %}w-full bg-[#f8fafc]{% endif %}">
-        <div class="{% if request.path != '/' %}flex-grow p-5 md:p-8 max-w-6xl w-full mx-auto pb-16{% else %}w-full{% endif %}">
+    <main class="flex-grow flex flex-col overflow-y-auto {% if request.path != '/' %}h-[calc(100vh-53px)] md:h-screen bg-[#f7f8fa]{% else %}w-full bg-[#f8fafc]{% endif %} dark:bg-gray-950">
+        {% if request.path != '/' %}
+        <!-- Premium Global Dashboard Top Header -->
+        <header class="bg-white border-b border-gray-200 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 z-30 shadow-xs dark:bg-gray-900/60 dark:border-gray-800">
+            <!-- Left: Search Input -->
+            <div class="relative w-full sm:max-w-md">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                    <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                </div>
+                <input type="text" id="global-search-input" placeholder="Search customer memory..." class="form-input pl-9 pr-4 py-1.5 text-xs w-full bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all dark:bg-gray-800 dark:border-gray-700 dark:text-white dark:focus:ring-violet-500">
+            </div>
+
+            <!-- Right: System Live, Sheets Sync, Date/Time & Notifications -->
+            <div class="flex flex-wrap items-center justify-end gap-4.5 w-full sm:w-auto text-xs">
+                <!-- Active System Live Badge -->
+                <span class="badge badge-green flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 font-semibold border border-emerald-100 rounded-full dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/50">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    System Live
+                </span>
+
+                <!-- Sheets Sync Status Badge -->
+                <span id="header-sheets-badge" class="badge badge-accent flex items-center gap-1 px-3 py-1 bg-violet-50 text-violet-700 font-semibold border border-violet-100 rounded-full dark:bg-violet-950/20 dark:text-violet-400 dark:border-violet-900/50">
+                    <i class="fa-brands fa-google text-violet-500 mr-0.5"></i>
+                    Sheets Sync
+                </span>
+
+                <!-- Date & Time Display -->
+                <span id="header-datetime-display" class="font-medium text-gray-500 flex items-center gap-1.5 px-2 dark:text-gray-400">
+                    <i class="fa-regular fa-clock text-gray-400"></i>
+                    <span>Loading time...</span>
+                </span>
+
+                <!-- Notification Center -->
+                <div class="relative">
+                    <button id="header-notification-btn" class="relative p-2.5 text-gray-500 hover:text-gray-900 transition-all duration-150 hover:scale-105 active:scale-90 hover:shadow-sm focus:outline-none rounded-lg hover:bg-gray-100 flex items-center justify-center dark:text-gray-400 dark:hover:text-white dark:hover:bg-gray-800">
+                        <i class="fa-solid fa-bell text-sm"></i>
+                        <!-- Red Dot Badge -->
+                        <span id="header-notification-badge" class="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 border border-white"></span>
+                    </button>
+
+                    <!-- Dropdown panel -->
+                    <div id="header-notification-dropdown" class="opacity-0 scale-95 pointer-events-none transition-all duration-200 ease-out origin-top-right transform absolute right-0 mt-2.5 w-80 bg-white border border-gray-200 rounded-xl shadow-lg z-50 py-2 divide-y divide-gray-100 dark:bg-gray-900 dark:border-gray-800 dark:divide-gray-800">
+                        <div class="px-4 py-2 flex items-center justify-between">
+                            <span class="font-bold text-gray-900 text-xs dark:text-white">Alerts</span>
+                            <button id="header-notification-clear" class="text-[11px] font-semibold text-violet-600 hover:text-violet-850 focus:outline-none">Clear</button>
+                        </div>
+                        <div id="header-notification-list" class="max-h-60 overflow-y-auto text-xs py-1">
+                            <div class="px-4 py-3 hover:bg-gray-50 flex gap-3 items-start border-b border-gray-50 last:border-0 dark:hover:bg-gray-800/50 dark:border-gray-800">
+                                <span class="w-1.5 h-1.5 rounded-full bg-red-500 mt-1.5 flex-shrink-0"></span>
+                                <div class="space-y-0.5">
+                                    <p class="text-gray-800 font-medium leading-normal dark:text-gray-200">High Urgency Lead Rahul Reddy requested call-back</p>
+                                    <span class="text-[10px] text-gray-400">Just now</span>
+                                </div>
+                            </div>
+                            <div class="px-4 py-3 hover:bg-gray-50 flex gap-3 items-start border-b border-gray-50 last:border-0 dark:hover:bg-gray-800/50 dark:border-gray-800">
+                                <span class="w-1.5 h-1.5 rounded-full bg-red-500 mt-1.5 flex-shrink-0"></span>
+                                <div class="space-y-0.5">
+                                    <p class="text-gray-800 font-medium leading-normal dark:text-gray-200">Sheets Sync completed for 4 records</p>
+                                    <span class="text-[10px] text-gray-400">5 minutes ago</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+        {% endif %}
+
+        <div class="{% if request.path != '/' %}flex-grow p-5 md:p-8 max-w-[1440px] w-full mx-auto pb-16{% else %}w-full{% endif %}">
             {% block content %}{% endblock %}
         </div>
     </main>
+
+    <!-- Side Drawer Overlay -->
+    <div id="drawer-overlay" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 hidden opacity-0 transition-opacity duration-300"></div>
+
+    <!-- Side Drawer Panel -->
+    <div id="call-drawer" class="fixed top-0 right-0 h-full w-full max-w-md bg-white dark:bg-slate-900 shadow-2xl z-50 transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col border-l border-gray-200 dark:border-slate-800">
+        
+        <!-- Drawer Header -->
+        <div class="p-5 border-b border-gray-200 dark:border-slate-800 flex justify-between items-center bg-gray-50 dark:bg-slate-900/50">
+            <h3 class="text-lg font-bold text-gray-900 dark:text-white truncate">Call Details</h3>
+            <button id="close-drawer" class="w-8 h-8 rounded-full hover:bg-gray-200 dark:hover:bg-slate-800 flex items-center justify-center text-gray-500 dark:text-gray-400 transition-colors">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+
+        <!-- Drawer Content -->
+        <div id="drawer-content" class="p-6 overflow-y-auto flex-1 space-y-6">
+            <!-- Dynamic content injected here -->
+        </div>
+    </div>
 
     <!-- Scripts -->
     <script src="{{ url_for('static', filename='js/main.js') }}"></script>
