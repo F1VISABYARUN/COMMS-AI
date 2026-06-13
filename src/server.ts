@@ -433,7 +433,10 @@ app.post('/api/process', async (req, res) => {
           "whatsapp": `Hi ${namePlaceholder}, thank you for speaking with me today. I am following up on your request and will have updates for you shortly. - Ops Support`,
           "email": `Subject: Following up on our discussion - ${industry.charAt(0).toUpperCase() + industry.slice(1)} Services\n\nDear ${namePlaceholder},\n\nThank you for your time on the phone today.\n\nI am compiling the information you requested and will get back to you by tomorrow with the next steps.\n\nBest regards,\nCustomer Operations`,
           "sms": `Hi ${namePlaceholder}, thanks for your call. I am checking on the details we discussed and will follow up shortly. Ops Team.`
-        }
+        },
+        "follow_up_needed": "Yes",
+        "reminder_date": new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Tomorrow
+        "caller_email": ""
       };
     }
 
@@ -453,9 +456,43 @@ app.post('/api/process', async (req, res) => {
     const { error } = await supabase.from('recordings').insert([processedRecord]);
     if (error) {
       console.error('[ERR] Failed to insert manual record into Supabase:', error);
+    } else {
+      console.log(`[OK] Saved manual process record ${processedRecord.id} to Supabase`);
     }
   } catch (err) {
     console.error('[ERR] Exception inserting manual record:', err);
+  }
+
+  // Save manual call records to Google Sheets immediately for follow-ups sync
+  if (processedRecord && processedRecord.result) {
+    try {
+      const resObj = processedRecord.result;
+      const today = new Date().toISOString().split('T')[0];
+      const summary = resObj.summary || "";
+      const actionItems = resObj.tasks ? resObj.tasks.map((t: any) => t.title).join(', ') : "";
+      const followUpNeeded = resObj.follow_up_needed || "No";
+      const reminderDate = resObj.reminder_date || "";
+      const callerEmail = resObj.caller_email || "";
+      const followUpStatus = resObj.follow_up_status || (followUpNeeded.toLowerCase() === "yes" ? "Pending" : "N/A");
+
+      const rowData = [
+        today,
+        processedRecord.caller || "Unknown",
+        summary,
+        actionItems,
+        followUpNeeded,
+        reminderDate,
+        followUpStatus,
+        callerEmail,
+        processedRecord.id // 9th column: Call ID
+      ];
+
+      const SHEET_ID = "1GEP1JtBcybnpVfDmeEr58zEhKMM1CgvfQP15wgljBJs";
+      await appendCallData(SHEET_ID, rowData);
+      console.log(`[OK] Successfully appended manual process record ${processedRecord.id} to Google Sheets`);
+    } catch (sheetErr) {
+      console.error('[ERR] Failed to append manual process record to Google Sheets:', sheetErr);
+    }
   }
 
   res.json(processedRecord);

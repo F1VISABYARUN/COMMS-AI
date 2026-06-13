@@ -97,6 +97,11 @@ async function checkAndSendFollowups() {
         const email = data['Email'] || '';
         // Validate reminder date string. Must match YYYY-MM-DD
         let targetDate = reminderDate.trim();
+        // Fallback if follow up is needed but reminder_date is empty
+        if (!targetDate && data['Follow-up Needed']?.toString().toLowerCase() === 'yes') {
+            console.log(`[WARN] Reminder Date is blank for row ${rowIndex} but Follow-up is Needed. Defaulting to today.`);
+            targetDate = today;
+        }
         const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
         if (targetDate && !dateRegex.test(targetDate)) {
             console.warn(`[WARN] Invalid reminder date format "${targetDate}" for row ${rowIndex}. Processing immediately.`);
@@ -109,7 +114,7 @@ async function checkAndSendFollowups() {
             let emailSent = true;
             // 1. Dispatch SMS to the Caller/Customer via Twilio
             if (twilioClient && TWILIO_PHONE && caller !== 'Unknown' && !caller.includes('Unknown')) {
-                let targetPhone = caller.trim();
+                let targetPhone = caller.trim().replace(/[\s\-\(\)]/g, '');
                 if (!targetPhone.startsWith('+')) {
                     if (/^\d+$/.test(targetPhone)) {
                         if (targetPhone.length === 10) {
